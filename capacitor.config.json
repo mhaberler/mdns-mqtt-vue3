@@ -1,0 +1,8 @@
+{
+  "appId": "com.haberlerm.mqttmdns",
+  "appName": "mqtt-mdns-vue",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}

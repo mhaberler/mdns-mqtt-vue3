@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">mqtt-mdns-vue</string>
+    <string name="title_activity_main">mqtt-mdns-vue</string>
+    <string name="package_name">com.haberlerm.mqttmdns</string>
+    <string name="custom_url_scheme">com.haberlerm.mqttmdns</string>
+</resources>
