@@ -45,5 +45,14 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>This app uses the local network to discover MQTT brokers using mDNS/Bonjour.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_mqtt._tcp</string>
+		<string>_mqtt-ws._tcp</string>
+		<string>_mqtts._tcp</string>
+		<string>_mqtt-wss._tcp</string>
+	</array>
 </dict>
 </plist>

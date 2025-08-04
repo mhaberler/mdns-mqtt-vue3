@@ -3,15 +3,24 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "config": {
+    "host": "172.16.0.212",
+    "port": "8102"
+  },
   "scripts": {
-    "dev": "vite",
+    "watch": "vue-tsc --watch",
+    "dev": "vite --port=$npm_package_config_port --host",
     "build": "vite build",
     "preview": "vite preview",
     "android": "npx cap run android",
     "ios": "npx cap run ios",
     "sync": "npx cap sync",
     "open:android": "npx cap open android",
-    "open:ios": "npx cap open ios"
+    "open:ios": "npx cap open ios",
+    "debug-android-s24": "bunx cap run android  --live-reload --host $npm_package_config_host --port $npm_package_config_port  --target R3CX90A30EW",
+    "debug-android-s10": "bunx cap run android  --live-reload --host $npm_package_config_host --port $npm_package_config_port  --target RF8MC11LGDW",
+    "debug-android-a15": "bunx cap run android  --live-reload --host $npm_package_config_host --port $npm_package_config_port  --target RF8Y109W1JB",
+    "debug-ios": "export PATH=\"/opt/homebrew/opt/ruby/bin:$PATH\" &&  bunx cap run ios --live-reload --host  $npm_package_config_host --port $npm_package_config_port  --target 00008140-0002692C1E79801C"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.2",
@@ -19,6 +28,7 @@
     "@capacitor/core": "^7.4.2",
     "@capacitor/ios": "^7.4.2",
     "buffer": "^6.0.3",
+    "capacitor-zeroconf": "^4.0.0",
     "crypto-browserify": "^3.12.1",
     "events": "^3.3.0",
     "mqtt": "^5.14.0",

@@ -23,30 +23,52 @@
         <button @click="addManualService" class="add-button">
           Add
         </button>
+        <button 
+          @click="toggleScan" 
+          :class="['scan-button', { 'scanning': isScanning }]"
+          :disabled="!isCapacitorApp"
+        >
+          {{ isScanning ? 'Stop Scan' : 'Start Scan' }}
+        </button>
+      </div>
+      <div v-if="!isCapacitorApp" class="warning">
+        <p>mDNS scanning is only available in the Capacitor app</p>
+      </div>
+      <div v-if="scanError" class="error">
+        <p>{{ scanError }}</p>
       </div>
     </div>
 
     <div class="services-list">
       <div v-if="Object.keys(services).length === 0" class="empty-state">
-        <p>No services configured. Add a manual MQTT broker above.</p>
+        <p v-if="isCapacitorApp && !isScanning">
+          No services found. Click "Start Scan" to discover MQTT brokers on your network, or add a manual broker above.
+        </p>
+        <p v-else-if="isCapacitorApp && isScanning">
+          Scanning for MQTT services... This may take a few moments.
+        </p>
+        <p v-else>
+          No services configured. Add a manual MQTT broker above.
+        </p>
         <p class="hint">Common ports: 1883 (MQTT), 8883 (MQTTS), 9001 (WebSocket)</p>
       </div>
 
       <div
         v-for="(service, key) in services"
         :key="key"
-        class="service-item"
+        :class="['service-item', { 'discovered': service.discovered }]"
         @click="handleServicePress(service)"
       >
         <h3>{{ service.name }}</h3>
         <p>Type: {{ service.type }}</p>
         <p>Host: {{ service.host }}</p>
         <p>Port: {{ service.port }}</p>
+        <p v-if="service.discovered" class="discovered-badge">Discovered via mDNS</p>
         <p class="tap-hint">Tap to connect</p>
         <button
           @click.stop="removeService(key)"
           class="remove-button"
-          title="Remove service"
+          :title="service.discovered ? 'Remove discovered service' : 'Remove manual service'"
         >
           ×
         </button>
@@ -56,8 +78,10 @@
 </template>
 
 <script>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { Capacitor } from '@capacitor/core'
+import { ZeroConf } from 'capacitor-zeroconf'
 
 export default {
   name: 'ScannerView',
@@ -67,27 +91,21 @@ export default {
     const manualHost = ref('')
     const manualPort = ref(1883)
     const selectedType = ref('_mqtt._tcp.')
+    const isScanning = ref(false)
+    const isCapacitorApp = ref(Capacitor.isNativePlatform())
+    const scanError = ref('')
+
+    // Service types to scan for
+    const serviceTypes = [
+      '_mqtt._tcp',
+      '_mqtt-ws._tcp',
+      '_mqtts._tcp',
+      '_mqtt-wss._tcp'
+    ]
 
     // Add some default services for testing
     const defaultServices = {
-      'local-mqtt': {
-        name: 'Local MQTT Broker',
-        type: '_mqtt._tcp.',
-        host: '192.168.1.100',
-        port: 1883
-      },
-      'local-mqtt-ws': {
-        name: 'Local MQTT WebSocket',
-        type: '_mqtt-ws._tcp.',
-        host: '192.168.1.100',
-        port: 9001
-      },
-      'mosquitto-test': {
-        name: 'Mosquitto Test Server',
-        type: '_mqtt-ws._tcp.',
-        host: 'test.mosquitto.org',
-        port: 8080
-      }
+
     }
 
     services.value = { ...defaultServices }
@@ -117,14 +135,109 @@ export default {
       })
     }
 
+    const onServiceFound = (result) => {
+      console.log('Service found:', result)
+      const service = result.service
+      const key = `${service.hostname}_${service.port}_${service.type}`
+      
+      services.value[key] = {
+        name: service.name || `${service.type} Service`,
+        type: service.type,
+        host: service.hostname || service.ipv4Addresses?.[0] || service.ipv6Addresses?.[0],
+        port: service.port,
+        discovered: true
+      }
+    }
+
+    const onServiceLost = (result) => {
+      console.log('Service lost:', result)
+      const service = result.service
+      const key = `${service.hostname}_${service.port}_${service.type}`
+      if (services.value[key] && services.value[key].discovered) {
+        delete services.value[key]
+      }
+    }
+
+    const startScan = async () => {
+      if (!isCapacitorApp.value) {
+        console.warn('mDNS scanning is only available in Capacitor apps')
+        return
+      }
+
+      try {
+        isScanning.value = true
+        scanError.value = ''
+        
+        // Add listeners
+        await ZeroConf.addListener('serviceFound', onServiceFound)
+        await ZeroConf.addListener('serviceLost', onServiceLost)
+
+        // Start scanning for each service type
+        for (const serviceType of serviceTypes) {
+          await ZeroConf.watch({
+            type: serviceType,
+            domain: 'local.'
+          })
+        }
+        
+        console.log('Started mDNS scanning for MQTT services')
+      } catch (error) {
+        console.error('Error starting mDNS scan:', error)
+        scanError.value = `Failed to start scan: ${error.message || 'Unknown error'}`
+        isScanning.value = false
+      }
+    }
+
+    const stopScan = async () => {
+      if (!isCapacitorApp.value) return
+
+      try {
+        await ZeroConf.unwatch()
+        await ZeroConf.removeAllListeners()
+        isScanning.value = false
+        scanError.value = ''
+        
+        // Remove discovered services
+        Object.keys(services.value).forEach(key => {
+          if (services.value[key].discovered) {
+            delete services.value[key]
+          }
+        })
+        
+        console.log('Stopped mDNS scanning')
+      } catch (error) {
+        console.error('Error stopping mDNS scan:', error)
+        scanError.value = `Failed to stop scan: ${error.message || 'Unknown error'}`
+      }
+    }
+
+    const toggleScan = () => {
+      if (isScanning.value) {
+        stopScan()
+      } else {
+        startScan()
+      }
+    }
+
+    // Cleanup on component unmount
+    onUnmounted(() => {
+      if (isScanning.value) {
+        stopScan()
+      }
+    })
+
     return {
       services,
       manualHost,
       manualPort,
       selectedType,
+      isScanning,
+      isCapacitorApp,
+      scanError,
       addManualService,
       removeService,
-      handleServicePress
+      handleServicePress,
+      toggleScan
     }
   }
 }
@@ -193,6 +306,52 @@ export default {
   background-color: #45a049;
 }
 
+.scan-button {
+  padding: 8px 16px;
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+.scan-button:hover {
+  background-color: #1976D2;
+}
+
+.scan-button.scanning {
+  background-color: #f44336;
+}
+
+.scan-button.scanning:hover {
+  background-color: #d32f2f;
+}
+
+.scan-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.warning {
+  margin-top: 10px;
+  padding: 10px;
+  background-color: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 4px;
+  color: #856404;
+}
+
+.error {
+  margin-top: 10px;
+  padding: 10px;
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+  color: #721c24;
+}
+
 .services-list {
   display: flex;
   flex-direction: column;
@@ -213,6 +372,10 @@ export default {
   transform: translateY(-2px);
 }
 
+.service-item.discovered {
+  border-left: 4px solid #2196F3;
+}
+
 .service-item h3 {
   margin: 0 0 10px 0;
   color: #333;
@@ -221,6 +384,12 @@ export default {
 .service-item p {
   margin: 5px 0;
   color: #666;
+}
+
+.discovered-badge {
+  color: #2196F3 !important;
+  font-weight: 500;
+  font-size: 0.9em;
 }
 
 .tap-hint {
