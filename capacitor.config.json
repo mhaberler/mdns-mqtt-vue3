@@ -1,5 +1,5 @@
 {
-  "appId": "com.haberlerm.mqttmdns",
+  "appId": "com.haberlerm.mqttmdnsvue",
   "appName": "mqtt-mdns-vue",
   "webDir": "dist",
   "server": {

@@ -3,13 +3,13 @@
     <div class="header">
       <h1>MQTT/MQTT-WS mDNS Scanner</h1>
       <div class="controls">
-        <input 
-          v-model="manualHost" 
+        <input
+          v-model="manualHost"
           placeholder="Enter MQTT broker IP"
           class="host-input"
         >
-        <input 
-          v-model="manualPort" 
+        <input
+          v-model="manualPort"
           placeholder="Port (1883)"
           type="number"
           class="port-input"
@@ -32,8 +32,8 @@
         <p class="hint">Common ports: 1883 (MQTT), 8883 (MQTTS), 9001 (WebSocket)</p>
       </div>
 
-      <div 
-        v-for="(service, key) in services" 
+      <div
+        v-for="(service, key) in services"
         :key="key"
         class="service-item"
         @click="handleServicePress(service)"
@@ -43,8 +43,8 @@
         <p>Host: {{ service.host }}</p>
         <p>Port: {{ service.port }}</p>
         <p class="tap-hint">Tap to connect</p>
-        <button 
-          @click.stop="removeService(key)" 
+        <button
+          @click.stop="removeService(key)"
           class="remove-button"
           title="Remove service"
         >

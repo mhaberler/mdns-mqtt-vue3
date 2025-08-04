@@ -11,7 +11,7 @@
       </div>
 
       <div class="header-buttons">
-        <button 
+        <button
           :class="['connection-button', connected ? 'disconnect' : 'connect']"
           @click="connected ? disconnectClient() : connectToMQTT()"
           :disabled="connecting"
@@ -38,13 +38,13 @@
     <div v-if="connected" class="publish-section">
       <h3>Publish Message</h3>
       <div class="publish-controls">
-        <input 
-          v-model="publishTopic" 
+        <input
+          v-model="publishTopic"
           placeholder="Topic (e.g., test/topic)"
           class="topic-input"
         >
-        <textarea 
-          v-model="publishMessage" 
+        <textarea
+          v-model="publishMessage"
           placeholder="Message payload"
           class="message-input"
           rows="2"
@@ -65,8 +65,8 @@
         <p>{{ connected ? 'Waiting for messages...' : 'Connect to start receiving messages' }}</p>
       </div>
 
-      <div 
-        v-for="message in messages" 
+      <div
+        v-for="message in messages"
         :key="message.id"
         :class="['message-item', message.topic === 'system' ? 'system-message' : '']"
       >
@@ -90,7 +90,7 @@ export default {
   setup() {
     const route = useRoute()
     const service = JSON.parse(route.params.service)
-    
+
     const connected = ref(false)
     const connecting = ref(false)
     const messages = ref([])
@@ -100,7 +100,7 @@ export default {
     let mqttClient = null
 
     const serviceName = computed(() => service.name || 'MQTT Service')
-    
+
     const connectionStatusText = computed(() => {
       if (connecting.value) return 'Connecting...'
       if (connected.value) return 'Connected'
@@ -119,7 +119,7 @@ export default {
     const brokerUrl = computed(() => {
       const isWebSocket = wsPatterns.some(pattern => service.type.includes(pattern))
       const isTls = tlsPatterns.some(pattern => service.type.includes(pattern))
-      
+
       if (isWebSocket) {
         const protocol = isTls ? 'wss' : 'ws'
         return `${protocol}://${service.host}:${service.port}`
@@ -159,7 +159,7 @@ export default {
           console.log('Connected to MQTT broker')
           connected.value = true
           connecting.value = false
-          
+
           // Subscribe to all topics
           mqttClient.subscribe('#', (err) => {
             if (err) {
@@ -243,7 +243,7 @@ export default {
         payload,
         timestamp
       }
-      
+
       messages.value = [newMessage, ...messages.value].slice(0, 500) // Keep last 500 messages
     }
 
