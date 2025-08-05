@@ -3,17 +3,8 @@
     <div class="header">
       <h1>MQTT/MQTT-WS mDNS Scanner</h1>
       <div class="controls">
-        <input
-          v-model="manualHost"
-          placeholder="Enter MQTT broker IP"
-          class="host-input"
-        >
-        <input
-          v-model="manualPort"
-          placeholder="Port (1883)"
-          type="number"
-          class="port-input"
-        >
+        <input v-model="manualHost" placeholder="Enter MQTT broker IP" class="host-input">
+        <input v-model="manualPort" placeholder="Port (1883)" type="number" class="port-input">
         <select v-model="selectedType" class="type-select">
           <option value="_mqtt._tcp.">MQTT TCP</option>
           <option value="_mqtt-ws._tcp.">MQTT WebSocket</option>
@@ -23,11 +14,7 @@
         <button @click="addManualService" class="add-button">
           Add
         </button>
-        <button 
-          @click="toggleScan" 
-          :class="['scan-button', { 'scanning': isScanning }]"
-          :disabled="!isCapacitorApp"
-        >
+        <button @click="toggleScan" :class="['scan-button', { 'scanning': isScanning }]" :disabled="!isCapacitorApp">
           {{ isScanning ? 'Stop Scan' : 'Start Scan' }}
         </button>
       </div>
@@ -53,15 +40,10 @@
         <p class="hint">Common ports: 1883 (MQTT), 8883 (MQTTS), 9001 (WebSocket)</p>
       </div>
 
-      <div
-        v-for="(service, key) in services"
-        :key="key"
-        :class="['service-item', { 
-          'discovered': service.discovered,
-          'resolved': service.resolved 
-        }]"
-        @click="handleServicePress(service)"
-      >
+      <div v-for="(service, key) in services" :key="key" :class="['service-item', {
+        'discovered': service.discovered,
+        'resolved': service.resolved
+      }]" @click="handleServicePress(service)">
         <h3>{{ service.name }}</h3>
         <p>Type: {{ service.type }}</p>
         <p>Host: {{ service.host }}</p>
@@ -73,11 +55,8 @@
           TXT: {{ JSON.stringify(service.txtRecord) }}
         </p>
         <p class="tap-hint">Tap to connect</p>
-        <button
-          @click.stop="removeService(key)"
-          class="remove-button"
-          :title="service.discovered ? 'Remove discovered service' : 'Remove manual service'"
-        >
+        <button @click.stop="removeService(key)" class="remove-button"
+          :title="service.discovered ? 'Remove discovered service' : 'Remove manual service'">
           ×
         </button>
       </div>
@@ -89,7 +68,15 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Capacitor } from '@capacitor/core'
-import { ZeroConf } from 'capacitor-zeroconf'
+import { ZeroConf } from '@mhaberler/capacitor-zeroconf-nsd'
+
+function removeLeadingAndTrailingDots(str) {
+  // The regular expression to match leading or trailing dots
+  // ^\.* -> Matches zero or more dots at the beginning of the string
+  // |      -> OR
+  // \.*$   -> Matches zero or more dots at the end of the string
+  return str.replace(/^\.+|\.+$/g, '');
+}
 
 export default {
   name: 'ScannerView',
@@ -98,17 +85,17 @@ export default {
     const services = ref({})
     const manualHost = ref('')
     const manualPort = ref(1883)
-    const selectedType = ref('_mqtt._tcp.')
+    const selectedType = ref('_mqtt._tcp')
     const isScanning = ref(false)
     const isCapacitorApp = ref(Capacitor.isNativePlatform())
     const scanError = ref('')
 
     // Service types to scan for
     const serviceTypes = [
-      '_mqtt._tcp',
-      '_mqtt-ws._tcp',
-      '_mqtts._tcp',
-      '_mqtt-wss._tcp'
+      '_mqtt._tcp.',
+      '_mqtt-ws._tcp.',
+      '_mqtts._tcp.',
+      '_mqtt-wss._tcp.'
     ]
 
     // Add some default services for testing
@@ -147,9 +134,9 @@ export default {
       if (!arg)
         return;
       const { action, service } = arg;
-      const key = `${service.name}_${service.domain}_${service.type}`
-      // const key = `${service?.name}_${service?.type}`
-      console.log('onServiceEvent:', action, key, JSON.stringify(service, null, 2))
+      const st = removeLeadingAndTrailingDots(service.type)
+      const key = `${service.name}_${service.domain}_${st}`
+      console.log(`onServiceEvent: ${action}, "${key}", ${JSON.stringify(service, null, 2)}`)
 
       if (action === 'added') {
         // Insert a basic service object when service is first discovered
@@ -163,22 +150,29 @@ export default {
         }
       } else if (action === 'removed') {
         // Delete the service object when it's no longer available
-        if (services.value[key] && services.value[key].discovered) {
-          delete services.value[key]
+        if (services.value[key]) {
+          console.log("remove: key found:", key, services.value[key].discovered)
+          if (services.value[key].discovered) {
+            delete services.value[key]
+          }
+        } else {
+          console.log("remove: key not found:", key)
         }
-      // } else if (action === 'resolved' && services.value[key]) {
-      } else if (action === 'resolved') {
+
+      } else if (action === 'resolved' && service.port) {
         // Enhance the existing service object with resolved details
-        services.value[key] = {
-          ...services.value[key],
-          name: service.name || services.value[key].name,
-          host: service.hostname || service.ipv4Addresses?.[0] || service.ipv6Addresses?.[0] || services.value[key].host,
-          port: service.port || services.value[key].port,
-          resolved: true,
-          // Add any additional resolved fields
-          txtRecord: service.txtRecord || {},
-          ipv4Addresses: service.ipv4Addresses || [],
-          ipv6Addresses: service.ipv6Addresses || []
+        if (services.value[key]) {
+          services.value[key] = {
+            ...services.value[key],
+            name: service.name || services.value[key].name,
+            host: service.hostname || service.ipv4Addresses?.[0] || service.ipv6Addresses?.[0] || services.value[key].host,
+            port: service.port || services.value[key].port,
+            resolved: true,
+            // Add any additional resolved fields
+            txtRecord: service.txtRecord || {},
+            ipv4Addresses: service.ipv4Addresses || [],
+            ipv6Addresses: service.ipv6Addresses || []
+          }
         }
       }
     }
@@ -188,20 +182,20 @@ export default {
         console.warn('mDNS scanning is only available in Capacitor apps')
         return
       }
-      await ZeroConf.getHostname()
 
       try {
         isScanning.value = true
         scanError.value = ''
-        
+
         // Start scanning for each service type with callbacks
         for (const serviceType of serviceTypes) {
           await ZeroConf.watch({
-            type: serviceType + ".",
-            domain: 'local.'
+            type: serviceType,
+            domain: 'local.',
+            // addressFamily: 'ipv4'
           }, onServiceEvent)
         }
-        
+
         console.log('Started mDNS scanning for MQTT services')
       } catch (error) {
         console.error('Error starting mDNS scan:', error)
@@ -215,8 +209,8 @@ export default {
 
       try {
         for (const serviceType of serviceTypes) {
-          await ZeroConf.unwatch({
-            type: serviceType + ".",
+          ZeroConf.unwatch({
+            type: serviceType,
             domain: 'local.'
           })
         }
@@ -229,7 +223,6 @@ export default {
             delete services.value[key]
           }
         })
-        await ZeroConf.close()
 
         console.log('Stopped mDNS scanning')
       } catch (error) {
@@ -284,7 +277,7 @@ export default {
   padding: 20px;
   background: white;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .header h1 {
@@ -299,7 +292,9 @@ export default {
   flex-wrap: wrap;
 }
 
-.host-input, .port-input, .type-select {
+.host-input,
+.port-input,
+.type-select {
   padding: 8px 12px;
   border: 1px solid #ddd;
   border-radius: 4px;
@@ -389,7 +384,7 @@ export default {
   background: white;
   padding: 20px;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   cursor: pointer;
   transition: transform 0.2s;
   position: relative;

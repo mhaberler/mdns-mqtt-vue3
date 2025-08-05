@@ -2,5 +2,5 @@
 include ':capacitor-android'
 project(':capacitor-android').projectDir = new File('../node_modules/@capacitor/android/capacitor')
 
-include ':capacitor-zeroconf'
-project(':capacitor-zeroconf').projectDir = new File('../node_modules/capacitor-zeroconf/android')
+include ':mhaberler-capacitor-zeroconf-nsd'
+project(':mhaberler-capacitor-zeroconf-nsd').projectDir = new File('../node_modules/@mhaberler/capacitor-zeroconf-nsd/android')
