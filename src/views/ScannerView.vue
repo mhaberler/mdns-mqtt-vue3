@@ -124,9 +124,16 @@ export default {
     }
 
     const handleServicePress = (service) => {
+      // Use query parameters instead of route params for complex objects
       router.push({
         name: 'MQTTClient',
-        params: { service: JSON.stringify(service) }
+        query: { 
+          name: service.name,
+          type: service.type,
+          host: service.host,
+          port: service.port.toString(),
+          discovered: service.discovered ? 'true' : 'false'
+        }
       })
     }
 

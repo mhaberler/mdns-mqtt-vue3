@@ -83,13 +83,21 @@
 <script>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
-import * as mqtt from 'mqtt'
+import mqtt from 'mqtt'
 
 export default {
   name: 'MQTTClientView',
   setup() {
     const route = useRoute()
-    const service = JSON.parse(route.params.service)
+    
+    // Read service info from query parameters
+    const service = {
+      name: route.query.name || 'Unknown Service',
+      type: route.query.type || '_mqtt._tcp.',
+      host: route.query.host || 'localhost',
+      port: parseInt(route.query.port) || 1883,
+      discovered: route.query.discovered === 'true'
+    }
 
     const connected = ref(false)
     const connecting = ref(false)
