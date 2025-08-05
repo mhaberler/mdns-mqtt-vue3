@@ -135,8 +135,9 @@ export default {
       })
     }
 
-    const onServiceFound = (result) => {
-      console.log('Service found:', result)
+    const onServiceEvent = (action, service) => {
+      console.log('onServiceEvent:', action, service)
+      return;
       const service = result.service
       const key = `${service.hostname}_${service.port}_${service.type}`
       
@@ -168,16 +169,12 @@ export default {
         isScanning.value = true
         scanError.value = ''
         
-        // Add listeners
-        await ZeroConf.addListener('serviceFound', onServiceFound)
-        await ZeroConf.addListener('serviceLost', onServiceLost)
-
-        // Start scanning for each service type
+        // Start scanning for each service type with callbacks
         for (const serviceType of serviceTypes) {
           await ZeroConf.watch({
-            type: serviceType,
+            type: serviceType + ".",
             domain: 'local.'
-          })
+          }, onServiceEvent)
         }
         
         console.log('Started mDNS scanning for MQTT services')
@@ -193,7 +190,6 @@ export default {
 
       try {
         await ZeroConf.unwatch()
-        await ZeroConf.removeAllListeners()
         isScanning.value = false
         scanError.value = ''
         

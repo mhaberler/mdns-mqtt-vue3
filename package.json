@@ -35,7 +35,8 @@
     "process": "^0.11.10",
     "stream": "^0.0.3",
     "vue": "^3.5.18",
-    "vue-router": "^4.5.1"
+    "vue-router": "^4.5.1",
+    "vue-tsc": "^3.0.5"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.1",
