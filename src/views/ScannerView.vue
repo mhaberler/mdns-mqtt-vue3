@@ -56,14 +56,22 @@
       <div
         v-for="(service, key) in services"
         :key="key"
-        :class="['service-item', { 'discovered': service.discovered }]"
+        :class="['service-item', { 
+          'discovered': service.discovered,
+          'resolved': service.resolved 
+        }]"
         @click="handleServicePress(service)"
       >
         <h3>{{ service.name }}</h3>
         <p>Type: {{ service.type }}</p>
         <p>Host: {{ service.host }}</p>
         <p>Port: {{ service.port }}</p>
-        <p v-if="service.discovered" class="discovered-badge">Discovered via mDNS</p>
+        <p v-if="service.discovered" class="discovered-badge">
+          Discovered via mDNS{{ service.resolved ? ' (Resolved)' : ' (Resolving...)' }}
+        </p>
+        <p v-if="service.txtRecord && Object.keys(service.txtRecord).length > 0" class="txt-record">
+          TXT: {{ JSON.stringify(service.txtRecord) }}
+        </p>
         <p class="tap-hint">Tap to connect</p>
         <button
           @click.stop="removeService(key)"
@@ -135,27 +143,43 @@ export default {
       })
     }
 
-    const onServiceEvent = (action, service) => {
-      console.log('onServiceEvent:', action, service)
-      return;
-      const service = result.service
-      const key = `${service.hostname}_${service.port}_${service.type}`
-      
-      services.value[key] = {
-        name: service.name || `${service.type} Service`,
-        type: service.type,
-        host: service.hostname || service.ipv4Addresses?.[0] || service.ipv6Addresses?.[0],
-        port: service.port,
-        discovered: true
-      }
-    }
+    const onServiceEvent = (arg) => {
+      if (!arg)
+        return;
+      const { action, service } = arg;
+      const key = `${service.name}_${service.domain}_${service.type}`
+      // const key = `${service?.name}_${service?.type}`
+      console.log('onServiceEvent:', action, key, JSON.stringify(service, null, 2))
 
-    const onServiceLost = (result) => {
-      console.log('Service lost:', result)
-      const service = result.service
-      const key = `${service.hostname}_${service.port}_${service.type}`
-      if (services.value[key] && services.value[key].discovered) {
-        delete services.value[key]
+      if (action === 'added') {
+        // Insert a basic service object when service is first discovered
+        services.value[key] = {
+          name: service.name || `${service.type} Service`,
+          type: service.type,
+          host: service.hostname || service.ipv4Addresses?.[0] || service.ipv6Addresses?.[0] || 'Unknown',
+          port: service.port || 0,
+          discovered: true,
+          resolved: false
+        }
+      } else if (action === 'removed') {
+        // Delete the service object when it's no longer available
+        if (services.value[key] && services.value[key].discovered) {
+          delete services.value[key]
+        }
+      // } else if (action === 'resolved' && services.value[key]) {
+      } else if (action === 'resolved') {
+        // Enhance the existing service object with resolved details
+        services.value[key] = {
+          ...services.value[key],
+          name: service.name || services.value[key].name,
+          host: service.hostname || service.ipv4Addresses?.[0] || service.ipv6Addresses?.[0] || services.value[key].host,
+          port: service.port || services.value[key].port,
+          resolved: true,
+          // Add any additional resolved fields
+          txtRecord: service.txtRecord || {},
+          ipv4Addresses: service.ipv4Addresses || [],
+          ipv6Addresses: service.ipv6Addresses || []
+        }
       }
     }
 
@@ -164,6 +188,7 @@ export default {
         console.warn('mDNS scanning is only available in Capacitor apps')
         return
       }
+      await ZeroConf.getHostname()
 
       try {
         isScanning.value = true
@@ -189,17 +214,23 @@ export default {
       if (!isCapacitorApp.value) return
 
       try {
-        await ZeroConf.unwatch()
+        for (const serviceType of serviceTypes) {
+          await ZeroConf.unwatch({
+            type: serviceType + ".",
+            domain: 'local.'
+          })
+        }
         isScanning.value = false
         scanError.value = ''
-        
+
         // Remove discovered services
         Object.keys(services.value).forEach(key => {
           if (services.value[key].discovered) {
             delete services.value[key]
           }
         })
-        
+        await ZeroConf.close()
+
         console.log('Stopped mDNS scanning')
       } catch (error) {
         console.error('Error stopping mDNS scan:', error)
@@ -372,6 +403,14 @@ export default {
   border-left: 4px solid #2196F3;
 }
 
+.service-item.discovered:not(.resolved) {
+  opacity: 0.8;
+}
+
+.service-item.discovered.resolved {
+  opacity: 1;
+}
+
 .service-item h3 {
   margin: 0 0 10px 0;
   color: #333;
@@ -386,6 +425,13 @@ export default {
   color: #2196F3 !important;
   font-weight: 500;
   font-size: 0.9em;
+}
+
+.txt-record {
+  color: #666 !important;
+  font-size: 0.8em;
+  font-family: monospace;
+  word-break: break-all;
 }
 
 .tap-hint {
