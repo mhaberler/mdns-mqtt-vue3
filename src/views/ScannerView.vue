@@ -161,7 +161,8 @@ export default {
           type: service.type,
           host: service.host,
           port: service.port.toString(),
-          discovered: service.discovered ? 'true' : 'false'
+          discovered: service.discovered ? 'true' : 'false',
+          txtRecord: service.txtRecord ? JSON.stringify(service.txtRecord) : undefined
         }
       })
     }

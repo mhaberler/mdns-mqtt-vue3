@@ -96,9 +96,10 @@ export default {
       type: route.query.type || '_mqtt._tcp.',
       host: route.query.host || 'localhost',
       port: parseInt(route.query.port) || 1883,
-      discovered: route.query.discovered === 'true'
+      discovered: route.query.discovered === 'true',
+      txtRecord: route.query.txtRecord ? JSON.parse(route.query.txtRecord) : {}
     }
-
+    
     const connected = ref(false)
     const connecting = ref(false)
     const messages = ref([])
@@ -121,8 +122,8 @@ export default {
       return 'disconnected'
     })
 
-    const wsPatterns = ['_mqtt-ws._tcp.', '_mqtt-wss._tcp.']
-    const tlsPatterns = ['_mqtts._tcp.', '_mqtt-wss._tcp.']
+    const wsPatterns = ['_mqtt-ws._tcp.', '_mqtt-wss._tcp.', '._mqtt-ws._tcp', '._mqtt-wss._tcp']
+    const tlsPatterns = ['_mqtts._tcp.', '_mqtt-wss._tcp.', '._mqtts._tcp.', '._mqtt-wss._tcp.']
 
     const brokerUrl = computed(() => {
       const isWebSocket = wsPatterns.some(pattern => service.type.includes(pattern))
@@ -156,8 +157,10 @@ export default {
         // For WebSocket connections, we need special handling
         const isWebSocket = wsPatterns.some(pattern => service.type.includes(pattern))
         if (isWebSocket) {
-          // For WebSocket, we might need to add '/mqtt' path
-          const wsUrl = brokerUrl.value.includes('/mqtt') ? brokerUrl.value : `${brokerUrl.value}/mqtt`
+          // Use txtRecord path if available, otherwise default to '/mqtt'
+          const wsPath = service.txtRecord?.path || '/mqtt'
+          const wsUrl = `${brokerUrl.value}${wsPath}`
+          console.log('WebSocket path from txtRecord:', wsPath)
           mqttClient = mqtt.connect(wsUrl, options)
         } else {
           mqttClient = mqtt.connect(brokerUrl.value, options)
@@ -562,3 +565,4 @@ export default {
   border-radius: 3px;
 }
 </style>
+

@@ -1,4 +1,4 @@
-# MQTT mDNS Scanner - Vue 3 + Capacitor
+# MQTT mDNS Scanner + MQTT Client using Vue 3 + Capacitor
 
 A cross-platform mobile application built with Vue 3 and Capacitor for discovering and connecting to MQTT brokers.
 
