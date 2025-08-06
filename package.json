@@ -8,6 +8,7 @@
     "port": "8102"
   },
   "scripts": {
+    "clean": "bunx rimraf ./dist",
     "watch": "vue-tsc --watch",
     "dev": "vite --port=$npm_package_config_port --host",
     "build": "vite build",
