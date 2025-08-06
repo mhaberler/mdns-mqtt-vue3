@@ -97,10 +97,36 @@ export default {
       '_mqtts._tcp.',
       '_mqtt-wss._tcp.'
     ]
-
+    // test.mosquitto.org
+    // 1883 : MQTT, unencrypted, unauthenticated
+    // 1884 : MQTT, unencrypted, authenticated
+    // 8883 : MQTT, encrypted, unauthenticated
+    // 8884 : MQTT, encrypted, client certificate required
+    // 8885 : MQTT, encrypted, authenticated
+    // 8886 : MQTT, encrypted, unauthenticated
+    // 8887 : MQTT, encrypted, server certificate deliberately expired
+    // 8080 : MQTT over WebSockets, unencrypted, unauthenticated
+    // 8081 : MQTT over WebSockets, encrypted, unauthenticated
+    // 8090 : MQTT over WebSockets, unencrypted, authenticated
+    // 8091 : MQTT over WebSockets, encrypted, authenticated
     // Add some default services for testing
     const defaultServices = {
-
+      'test-mosquitto-wss': {
+        name: 'test.mosquitto.org (WSS)',
+        type: '_mqtt-wss._tcp.',
+        host: 'test.mosquitto.org',
+        port: 8081,
+        discovered: false,
+        resolved: true
+      },
+      'test-mosquitto-ws': {
+        name: 'test.mosquitto.org (WS)',
+        type: '_mqtt-ws._tcp.',
+        host: 'test.mosquitto.org',
+        port: 8080,
+        discovered: false,
+        resolved: true
+      }
     }
 
     services.value = { ...defaultServices }
