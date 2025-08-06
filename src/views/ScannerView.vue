@@ -118,8 +118,11 @@ export default {
         port: 8081,
         discovered: false,
         resolved: true
-      },
-      'test-mosquitto-ws': {
+      }
+    }
+    // Only add insecure WebSocket service when not on web platform
+    if (isCapacitorApp.value) {
+      defaultServices['test-mosquitto-ws'] = {
         name: 'test.mosquitto.org (WS)',
         type: '_mqtt-ws._tcp.',
         host: 'test.mosquitto.org',
@@ -153,7 +156,7 @@ export default {
       // Use query parameters instead of route params for complex objects
       router.push({
         name: 'MQTTClient',
-        query: { 
+        query: {
           name: service.name,
           type: service.type,
           host: service.host,
