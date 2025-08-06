@@ -6,9 +6,9 @@
         <input v-model="manualHost" placeholder="Enter MQTT broker IP" class="host-input">
         <input v-model="manualPort" placeholder="Port (1883)" type="number" class="port-input">
         <select v-model="selectedType" class="type-select">
-          <option value="_mqtt._tcp.">MQTT TCP</option>
+          <!-- <option value="_mqtt._tcp.">MQTT TCP</option> -->
           <option value="_mqtt-ws._tcp.">MQTT WebSocket</option>
-          <option value="_mqtts._tcp.">MQTT TLS</option>
+          <!-- <option value="_mqtts._tcp.">MQTT TLS</option> -->
           <option value="_mqtt-wss._tcp.">MQTT WSS</option>
         </select>
         <button @click="addManualService" class="add-button">
@@ -92,9 +92,9 @@ export default {
 
     // Service types to scan for
     const serviceTypes = [
-      '_mqtt._tcp.',
+      // '_mqtt._tcp.',
       '_mqtt-ws._tcp.',
-      '_mqtts._tcp.',
+      // '_mqtts._tcp.',
       '_mqtt-wss._tcp.'
     ]
     // test.mosquitto.org
