@@ -29,7 +29,13 @@
     "logcat:app:device": "adb -d logcat -v threadtime Capacitor:D 'Capacitor/Console':D *:S",
     "logcat:app:emulator": "adb -e logcat -v threadtime Capacitor:D 'Capacitor/Console':D *:S",
     "logcat:app:mydevice": "adb -s R3CX90A30EW logcat -v threadtime Capacitor:D 'Capacitor/Console':D *:S",
-    "logcat:app:output": "adb logcat -d -v threadtime Capacitor:D 'Capacitor/Console':D *:S > android_logs.txt"
+    "logcat:app:output": "adb logcat -d -v threadtime Capacitor:D 'Capacitor/Console':D *:S > android_logs.txt",
+    "run-on-galaxy-s24": "bunx cap run android --target R3CX90A30EW",
+    "run-on-galaxy-s10": "bunx cap run android --target RF8MC11LGDW",
+    "run-on-galaxy-a15": "bunx cap run android --target RF8Y109W1JB",
+    "run-on-galaxy-pro-tab10": "bunx cap run android --target R52T40AW12D",
+    "run-on-iphone": "bunx cap run ios --target 00008140-0002692C1E79801C",
+    "run-on-ipad": "bunx cap run ios --target 7469941401580df80750b83afac3dec9bde0309a"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.2",
