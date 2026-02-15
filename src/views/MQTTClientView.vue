@@ -142,12 +142,6 @@ export default defineComponent({
       return 'Disconnected'
     })
 
-    const connectionStatusClass = computed(() => {
-      if (connecting.value) return 'connecting'
-      if (connected.value) return 'connected'
-      return 'disconnected'
-    })
-
     const wsPatterns = ['_mqtt-ws._tcp.', '_mqtt-wss._tcp.', '._mqtt-ws._tcp', '._mqtt-wss._tcp']
     const tlsPatterns = ['_mqtts._tcp.', '_mqtt-wss._tcp.', '._mqtts._tcp.', '._mqtt-wss._tcp.']
 
@@ -295,7 +289,6 @@ export default defineComponent({
       publishTopic,
       publishMessage,
       connectionStatusText,
-      connectionStatusClass,
       brokerUrl,
       connectToMQTT,
       disconnectClient,
