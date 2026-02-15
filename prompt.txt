@@ -1,5 +1,0 @@
-onServiceEvent:
-
-if action == 'added', insert a services Object
-if action == 'removed', delete the services Object
-if action == 'resolved' and the services object exists, enhance the services Object by the fields found
