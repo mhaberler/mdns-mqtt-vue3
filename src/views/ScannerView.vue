@@ -1,7 +1,7 @@
 <template>
   <div class="scanner-container">
     <div class="header">
-      <h1>MQTT/MQTT-WS mDNS Scanner</h1>
+      <h1 class="text-3xl font-bold text-blue-600">MQTT/MQTT-WS mDNS Scanner</h1>
       <div class="controls">
         <input v-model="manualHost" placeholder="Enter MQTT broker IP" class="host-input">
         <input v-model="manualPort" placeholder="Port (1883)" type="number" class="port-input">
