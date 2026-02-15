@@ -14,6 +14,18 @@ A cross-platform mobile application built with Vue 3 and Capacitor for discoveri
 - 📱 **Fully Responsive**: Adapts to all screen sizes with full-width layout
 - 🎨 **Modern UI**: Built with Tailwind CSS v4 and semantic Material Design tokens
 
+## Screenshots
+
+### Scanner View
+Discover and manage MQTT brokers with mDNS scanning and manual entry.
+
+![Scanner View](./assets/ScannerView.png)
+
+### MQTT Client View
+Connect to brokers and interact with topics in real-time.
+
+![MQTT Client View](./assets/MQTTClientView.png)
+
 ## Tech Stack
 
 - **Vue 3** with Options API + `setup()` and TypeScript
