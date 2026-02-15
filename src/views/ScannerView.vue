@@ -1,64 +1,77 @@
 <template>
-  <div class="scanner-container">
-    <div class="header">
-      <h1>MQTT/MQTT-WS mDNS Scanner</h1>
-      <div class="controls">
-        <input v-model="manualHost" placeholder="Enter MQTT broker IP" class="host-input">
-        <input v-model="manualPort" placeholder="Port (1883)" type="number" class="port-input">
-        <select v-model="selectedType" class="type-select">
-          <!-- <option value="_mqtt._tcp.">MQTT TCP</option> -->
+  <div class="w-full min-h-screen p-4 md:p-6 bg-gray-50">
+    <div class="mb-6 p-5 md:p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+      <h1 class="text-2xl font-bold text-gray-800 mb-6">MQTT/MQTT-WS mDNS Scanner</h1>
+      <div class="flex flex-wrap gap-3">
+        <input v-model="manualHost" placeholder="Enter MQTT broker IP" class="flex-1 min-w-[200px] px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary outline-none">
+        <input v-model="manualPort" placeholder="Port (1883)" type="number" class="w-24 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary outline-none">
+        <select v-model="selectedType" class="w-40 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white">
           <option value="_mqtt-ws._tcp.">MQTT WebSocket</option>
-          <!-- <option value="_mqtts._tcp.">MQTT TLS</option> -->
           <option value="_mqtt-wss._tcp.">MQTT WSS</option>
         </select>
-        <button @click="addManualService" class="add-button">
+        <button @click="addManualService" class="btn btn-primary">
           Add
         </button>
-        <button @click="toggleScan" :class="['scan-button', { 'scanning': isScanning }]" :disabled="!isCapacitorApp">
+        <button @click="toggleScan" :class="['btn', isScanning ? 'btn-danger' : 'btn-success']" :disabled="!isCapacitorApp">
           {{ isScanning ? 'Stop Scan' : 'Start Scan' }}
         </button>
       </div>
-      <div v-if="!isCapacitorApp" class="warning">
+      <div v-if="!isCapacitorApp" class="mt-4 p-3 bg-amber-50 text-amber-700 rounded-lg text-sm border border-amber-100">
         <p>mDNS scanning is only available in the Capacitor app</p>
       </div>
-      <div v-if="scanError" class="error">
+      <div v-if="scanError" class="mt-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-100">
         <p>{{ scanError }}</p>
       </div>
     </div>
 
-    <div class="services-list">
-      <div v-if="Object.keys(services).length === 0" class="empty-state">
-        <p v-if="isCapacitorApp && !isScanning">
-          No services found. Click "Start Scan" to discover MQTT brokers on your network, or add a manual broker above.
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div v-if="Object.keys(services).length === 0" class="col-span-full py-12 text-center text-gray-500">
+        <p v-if="isCapacitorApp && !isScanning" class="mb-2 text-lg">
+          No services found. Click "Start Scan" to discover MQTT brokers.
         </p>
-        <p v-else-if="isCapacitorApp && isScanning">
-          Scanning for MQTT services... This may take a few moments.
+        <p v-else-if="isCapacitorApp && isScanning" class="mb-2 text-lg animate-pulse">
+          Scanning for MQTT services...
         </p>
-        <p v-else>
+        <p v-else class="mb-2 text-lg">
           No services configured. Add a manual MQTT broker above.
         </p>
-        <p class="hint">Common ports: 1883 (MQTT), 8883 (MQTTS), 9001 (WebSocket)</p>
+        <p class="text-sm opacity-70 italic">Common ports: 1883 (MQTT), 8883 (MQTTS), 9001 (WebSocket)</p>
       </div>
 
-      <div v-for="(service, key) in services" :key="key" :class="['service-item', {
-        'discovered': service.discovered,
-        'resolved': service.resolved
-      }]" @click="handleServicePress(service)">
-        <h3>{{ service.name }}</h3>
-        <p>Type: {{ service.type }}</p>
-        <p>Host: {{ service.host }}</p>
-        <p>Port: {{ service.port }}</p>
-        <p v-if="service.discovered" class="discovered-badge">
-          Discovered via mDNS{{ service.resolved ? ' (Resolved)' : ' (Resolving...)' }}
-        </p>
-        <p v-if="service.txtRecord && Object.keys(service.txtRecord).length > 0" class="txt-record">
+      <div v-for="(service, key) in services" :key="key"
+        class="group relative bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:border-primary/20 hover:shadow-md transition-all cursor-pointer"
+        :class="{'border-l-4 border-l-primary': service.discovered}"
+        @click="handleServicePress(service)">
+
+        <div class="flex justify-between items-start mb-3">
+          <h3 class="font-bold text-lg text-gray-800">{{ service.name }}</h3>
+          <button @click.stop="removeService(key)"
+            class="opacity-0 group-hover:opacity-100 absolute -top-2 -right-2 w-7 h-7 btn-danger rounded-full flex items-center justify-center shadow-lg hover:opacity-100 transition-all">
+            ×
+          </button>
+        </div>
+
+        <div class="space-y-1 text-sm text-gray-600">
+          <p><span class="font-medium">Type:</span> {{ service.type }}</p>
+          <p><span class="font-medium">Host:</span> {{ service.host }}</p>
+          <p><span class="font-medium">Port:</span> {{ service.port }}</p>
+        </div>
+
+        <div class="mt-4 pt-4 border-t border-gray-50 flex justify-between items-center">
+          <span v-if="service.discovered" class="text-xs font-semibold text-primary flex items-center gap-1">
+            <span class="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></span>
+            mDNS {{ service.resolved ? '(Resolved)' : '(Resolving...)' }}
+          </span>
+          <span v-else class="text-xs font-semibold text-gray-400">Manual</span>
+
+          <span class="text-xs font-bold text-success bg-success/10 px-2 py-1 rounded">
+            TAP TO CONNECT →
+          </span>
+        </div>
+
+        <div v-if="service.txtRecord && Object.keys(service.txtRecord).length > 0" class="mt-3 text-[10px] font-mono bg-gray-50 p-2 rounded text-gray-400 overflow-x-auto">
           TXT: {{ JSON.stringify(service.txtRecord) }}
-        </p>
-        <p class="tap-hint">Tap to connect</p>
-        <button @click.stop="removeService(key)" class="remove-button"
-          :title="service.discovered ? 'Remove discovered service' : 'Remove manual service'">
-          ×
-        </button>
+        </div>
       </div>
     </div>
   </div>
@@ -281,208 +294,4 @@ export default defineComponent({
 </script>
 
 <style scoped>
-.scanner-container {
-  padding: 20px;
-  max-width: 800px;
-  margin: 0 auto;
-  min-height: 100vh;
-  background-color: #f5f5f5;
-}
-
-.header {
-  margin-bottom: 20px;
-  padding: 20px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.header h1 {
-  margin: 0 0 20px 0;
-  font-size: 1.5rem;
-  color: #333;
-}
-
-.controls {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.host-input,
-.port-input,
-.type-select {
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-.host-input {
-  flex: 1;
-  min-width: 200px;
-}
-
-.port-input {
-  width: 100px;
-}
-
-.type-select {
-  width: 150px;
-}
-
-.add-button {
-  padding: 8px 16px;
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.add-button:hover {
-  background-color: #45a049;
-}
-
-.scan-button {
-  padding: 8px 16px;
-  background-color: #2196F3;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: background-color 0.3s;
-}
-
-.scan-button:hover {
-  background-color: #1976D2;
-}
-
-.scan-button.scanning {
-  background-color: #f44336;
-}
-
-.scan-button.scanning:hover {
-  background-color: #d32f2f;
-}
-
-.scan-button:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-}
-
-.warning {
-  margin-top: 10px;
-  padding: 10px;
-  background-color: #fff3cd;
-  border: 1px solid #ffeaa7;
-  border-radius: 4px;
-  color: #856404;
-}
-
-.error {
-  margin-top: 10px;
-  padding: 10px;
-  background-color: #f8d7da;
-  border: 1px solid #f5c6cb;
-  border-radius: 4px;
-  color: #721c24;
-}
-
-.services-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.service-item {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  cursor: pointer;
-  transition: transform 0.2s;
-  position: relative;
-}
-
-.service-item:hover {
-  transform: translateY(-2px);
-}
-
-.service-item.discovered {
-  border-left: 4px solid #2196F3;
-}
-
-.service-item.discovered:not(.resolved) {
-  opacity: 0.8;
-}
-
-.service-item.discovered.resolved {
-  opacity: 1;
-}
-
-.service-item h3 {
-  margin: 0 0 10px 0;
-  color: #333;
-}
-
-.service-item p {
-  margin: 5px 0;
-  color: #666;
-}
-
-.discovered-badge {
-  color: #2196F3 !important;
-  font-weight: 500;
-  font-size: 0.9em;
-}
-
-.txt-record {
-  color: #666 !important;
-  font-size: 0.8em;
-  font-family: monospace;
-  word-break: break-all;
-}
-
-.tap-hint {
-  color: #4CAF50 !important;
-  font-weight: 500;
-  text-align: right;
-  margin-top: 10px !important;
-}
-
-.remove-button {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: #f44336;
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 25px;
-  height: 25px;
-  cursor: pointer;
-  font-size: 18px;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.remove-button:hover {
-  background: #d32f2f;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 40px;
-  color: #757575;
-}
-
-.hint {
-  font-size: 0.9em;
-  opacity: 0.8;
-}
 </style>
