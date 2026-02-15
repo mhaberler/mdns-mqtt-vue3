@@ -1,80 +1,96 @@
 <template>
-  <div class="mqtt-client-container">
-    <div class="header">
-      <div class="connection-info">
-        <h2>{{ serviceName }}</h2>
-        <div class="connection-status">
-          <span>{{ connectionStatusText }}</span>
-          <div :class="['status-indicator', connectionStatusClass]"></div>
+  <div class="mx-auto max-w-5xl w-full min-h-screen p-4 md:p-6 bg-gray-50">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 p-5 md:p-6 bg-white rounded-xl shadow-sm border border-gray-100 gap-4">
+      <div class="space-y-1">
+        <h2 class="text-2xl font-bold text-gray-800">{{ serviceName }}</h2>
+        <div class="flex items-center gap-2">
+          <span class="text-sm font-medium text-gray-500">{{ connectionStatusText }}</span>
+          <div :class="['w-3 h-3 rounded-full',
+            connecting ? 'bg-amber-400 animate-pulse' :
+            connected ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' :
+            'bg-red-500']"></div>
         </div>
-        <p class="broker-url">{{ brokerUrl }}</p>
+        <p class="font-mono text-xs text-gray-400 break-all">{{ brokerUrl }}</p>
       </div>
 
-      <div class="header-buttons">
+      <div class="flex gap-2 w-full md:w-auto">
         <button
-          :class="['connection-button', connected ? 'disconnect' : 'connect']"
+          :class="['flex-1 md:flex-none px-6 py-2 rounded-lg font-bold transition-all shadow-sm',
+            connected ? 'bg-red-500 hover:bg-red-600 text-white' :
+            connecting ? 'bg-gray-200 text-gray-500' :
+            'bg-blue-600 hover:bg-blue-700 text-white']"
           @click="connected ? disconnectClient() : connectToMQTT()"
           :disabled="connecting"
         >
           {{ connected ? 'Disconnect' : connecting ? 'Connecting...' : 'Connect' }}
         </button>
-        <button @click="$router.back()" class="back-button">
+        <button @click="$router.back()" class="px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-bold transition-all shadow-sm">
           Back
         </button>
       </div>
     </div>
 
-    <div v-if="error" class="error-container">
-      <p>{{ error }}</p>
-      <button @click="error = null" class="close-error">×</button>
+    <div v-if="error" class="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl flex justify-between items-center animate-in fade-in slide-in-from-top-4">
+      <p class="text-red-700 text-sm font-medium">{{ error }}</p>
+      <button @click="error = null" class="w-8 h-8 flex items-center justify-center text-red-400 hover:text-red-700 text-xl font-bold">×</button>
     </div>
 
-    <div v-if="connecting" class="loading-container">
-      <div class="loading-spinner"></div>
-      <p>Connecting to MQTT broker...</p>
+    <div v-if="connecting" class="mb-6 p-8 bg-white border border-gray-100 rounded-xl text-center">
+      <div class="inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
+      <p class="text-gray-500 font-medium">Connecting to MQTT broker...</p>
     </div>
 
     <!-- Message publishing section -->
-    <div v-if="connected" class="publish-section">
-      <h3>Publish Message</h3>
-      <div class="publish-controls">
+    <div v-if="connected" class="mb-6 p-5 md:p-6 bg-white rounded-xl shadow-sm border border-gray-100 animate-in fade-in zoom-in-95">
+      <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+        <span class="w-2 h-5 bg-blue-500 rounded-sm"></span>
+        Publish Message
+      </h3>
+      <div class="flex flex-col gap-3">
         <input
           v-model="publishTopic"
           placeholder="Topic (e.g., test/topic)"
-          class="topic-input"
+          class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm"
         >
         <textarea
           v-model="publishMessage"
           placeholder="Message payload"
-          class="message-input"
-          rows="2"
+          class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm resize-none"
+          rows="3"
         ></textarea>
-        <button @click="publishMessageToTopic" class="publish-button">
-          Publish
+        <button @click="publishMessageToTopic" class="w-full md:w-auto md:ml-auto px-10 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold transition-all shadow-md active:scale-95">
+          Publish →
         </button>
       </div>
     </div>
 
-    <div class="messages-container">
-      <div class="messages-header">
-        <h3>Messages ({{ messages.length }})</h3>
-        <button @click="clearMessages" class="clear-button">Clear</button>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col min-h-[400px]">
+      <div class="p-5 md:p-6 border-b border-gray-50 flex justify-between items-center">
+        <h3 class="text-lg font-bold text-gray-800">Messages <span class="text-blue-500 font-mono ml-1">({{ messages.length }})</span></h3>
+        <button @click="clearMessages" class="text-xs font-bold text-gray-400 hover:text-red-500 transition-colors uppercase tracking-wider">Clear Log</button>
       </div>
 
-      <div v-if="messages.length === 0" class="empty-messages">
+      <div v-if="messages.length === 0" class="flex-1 flex flex-center flex-col items-center justify-center p-12 text-gray-400">
+        <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+        </div>
         <p>{{ connected ? 'Waiting for messages...' : 'Connect to start receiving messages' }}</p>
       </div>
 
-      <div
-        v-for="message in messages"
-        :key="message.id"
-        :class="['message-item', message.topic === 'system' ? 'system-message' : '']"
-      >
-        <div class="message-header">
-          <span class="message-topic">{{ message.topic }}</span>
-          <span class="message-timestamp">{{ message.timestamp }}</span>
+      <div class="p-2 space-y-2 overflow-y-auto max-h-[60vh]">
+        <div
+          v-for="message in messages"
+          :key="message.id"
+          class="p-4 rounded-lg transition-all"
+          :class="[message.topic === 'system' ? 'bg-gray-50 border-l-4 border-gray-400 text-gray-600 italic' : 'bg-white border border-gray-100 shadow-sm']"
+        >
+          <div class="flex justify-between items-center mb-2">
+            <span class="text-xs font-bold font-mono px-2 py-0.5 rounded bg-blue-50 text-blue-600" v-if="message.topic !== 'system'">{{ message.topic }}</span>
+            <span class="text-xs font-bold font-mono text-gray-400 uppercase" v-else>SYSTEM</span>
+            <span class="text-[10px] font-mono text-gray-300">{{ message.timestamp }}</span>
+          </div>
+          <pre class="text-xs font-mono break-all whitespace-pre-wrap text-gray-700 bg-gray-50 p-2 rounded border border-gray-100/50 overflow-x-auto">{{ message.payload }}</pre>
         </div>
-        <pre class="message-payload">{{ message.payload }}</pre>
       </div>
     </div>
   </div>
@@ -291,276 +307,5 @@ export default defineComponent({
 </script>
 
 <style scoped>
-.mqtt-client-container {
-  padding: 20px;
-  max-width: 1000px;
-  margin: 0 auto;
-  min-height: 100vh;
-  background-color: #f5f5f5;
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 20px;
-  padding: 20px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.connection-info h2 {
-  margin: 0 0 10px 0;
-  color: #333;
-}
-
-.connection-status {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 5px;
-}
-
-.broker-url {
-  font-family: monospace;
-  font-size: 0.9em;
-  color: #666;
-  margin: 0;
-}
-
-.status-indicator {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-}
-
-.status-indicator.connected {
-  background-color: #4CAF50;
-}
-
-.status-indicator.connecting {
-  background-color: #FFC107;
-  animation: pulse 1.5s infinite;
-}
-
-.status-indicator.disconnected {
-  background-color: #F44336;
-}
-
-@keyframes pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.5; }
-  100% { opacity: 1; }
-}
-
-.header-buttons {
-  display: flex;
-  gap: 10px;
-  flex-direction: column;
-}
-
-.connection-button, .back-button {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 4px;
-  font-weight: bold;
-  color: white;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.connection-button.connect {
-  background-color: #4CAF50;
-}
-
-.connection-button.disconnect {
-  background-color: #F44336;
-}
-
-.back-button {
-  background-color: #2196F3;
-}
-
-.connection-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.error-container {
-  background-color: #FFEBEE;
-  border: 1px solid #FFCDD2;
-  padding: 15px;
-  border-radius: 4px;
-  margin-bottom: 20px;
-  position: relative;
-}
-
-.error-container p {
-  margin: 0;
-  color: #D32F2F;
-  font-weight: 500;
-}
-
-.close-error {
-  position: absolute;
-  top: 10px;
-  right: 15px;
-  background: none;
-  border: none;
-  font-size: 20px;
-  cursor: pointer;
-  color: #D32F2F;
-}
-
-.loading-container {
-  text-align: center;
-  padding: 40px;
-  background: white;
-  border-radius: 8px;
-  margin-bottom: 20px;
-}
-
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #4CAF50;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 20px;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.publish-section {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.publish-section h3 {
-  margin: 0 0 15px 0;
-  color: #333;
-}
-
-.publish-controls {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.topic-input, .message-input {
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-family: monospace;
-}
-
-.topic-input {
-  flex: 1;
-  min-width: 200px;
-}
-
-.message-input {
-  flex: 2;
-  min-width: 300px;
-  resize: vertical;
-}
-
-.publish-button {
-  padding: 8px 16px;
-  background-color: #FF9800;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.messages-container {
-  background: white;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.messages-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 20px;
-  background: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
-}
-
-.messages-header h3 {
-  margin: 0;
-  color: #333;
-}
-
-.clear-button {
-  padding: 5px 10px;
-  background: #6c757d;
-  color: white;
-  border: none;
-  border-radius: 3px;
-  cursor: pointer;
-  font-size: 0.9em;
-}
-
-.empty-messages {
-  text-align: center;
-  padding: 40px;
-  color: #757575;
-}
-
-.message-item {
-  padding: 15px 20px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.message-item.system-message {
-  background-color: #f8f9fa;
-}
-
-.message-item:last-child {
-  border-bottom: none;
-}
-
-.message-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.message-topic {
-  font-weight: bold;
-  color: #333;
-  font-family: monospace;
-}
-
-.message-timestamp {
-  font-size: 0.85em;
-  color: #757575;
-}
-
-.message-payload {
-  margin: 0;
-  font-family: 'Courier New', monospace;
-  font-size: 0.9em;
-  color: #555;
-  white-space: pre-wrap;
-  word-break: break-word;
-  background: #f8f9fa;
-  padding: 8px;
-  border-radius: 3px;
-}
 </style>
 
