@@ -3,8 +3,8 @@
     <div class="mb-6 p-5 md:p-6 bg-white rounded-xl shadow-sm border border-gray-100">
       <h1 class="text-2xl font-bold text-gray-800 mb-6">MQTT/MQTT-WS mDNS Scanner</h1>
       <div class="flex flex-wrap gap-3">
-        <input v-model="manualHost" placeholder="Enter MQTT broker IP" class="flex-1 min-w-[200px] px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-        <input v-model="manualPort" placeholder="Port (1883)" type="number" class="w-24 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+        <input v-model="manualHost" placeholder="Enter MQTT broker IP" class="flex-1 min-w-[200px] px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary outline-none">
+        <input v-model="manualPort" placeholder="Port (1883)" type="number" class="w-24 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary outline-none">
         <select v-model="selectedType" class="w-40 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white">
           <option value="_mqtt-ws._tcp.">MQTT WebSocket</option>
           <option value="_mqtt-wss._tcp.">MQTT WSS</option>
