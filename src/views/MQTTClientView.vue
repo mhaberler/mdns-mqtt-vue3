@@ -6,59 +6,59 @@
         <div class="flex items-center gap-2">
           <span class="text-sm font-medium text-gray-500">{{ connectionStatusText }}</span>
           <div :class="['w-3 h-3 rounded-full',
-            connecting ? 'bg-amber-400 animate-pulse' :
-            connected ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' :
-            'bg-red-500']"></div>
+            connecting ? 'bg-warning animate-pulse' :
+            connected ? 'bg-success shadow-[0_0_8px_rgba(76,175,80,0.6)]' :
+            'bg-error']"></div>
         </div>
         <p class="font-mono text-xs text-gray-400 break-all">{{ brokerUrl }}</p>
       </div>
 
       <div class="flex gap-2 w-full md:w-auto">
         <button
-          :class="['flex-1 md:flex-none px-6 py-2 rounded-lg font-bold transition-all shadow-sm',
-            connected ? 'bg-red-500 hover:bg-red-600 text-white' :
-            connecting ? 'bg-gray-200 text-gray-500' :
-            'bg-blue-600 hover:bg-blue-700 text-white']"
+          :class="['btn flex-1 md:flex-none font-bold',
+            connected ? 'btn-danger' :
+            connecting ? 'bg-gray-200 text-gray-500 cursor-not-allowed' :
+            'btn-primary']"
           @click="connected ? disconnectClient() : connectToMQTT()"
           :disabled="connecting"
         >
           {{ connected ? 'Disconnect' : connecting ? 'Connecting...' : 'Connect' }}
         </button>
-        <button @click="$router.back()" class="px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-bold transition-all shadow-sm">
+        <button @click="$router.back()" class="btn bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold shadow-sm">
           Back
         </button>
       </div>
     </div>
 
-    <div v-if="error" class="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl flex justify-between items-center animate-in fade-in slide-in-from-top-4">
-      <p class="text-red-700 text-sm font-medium">{{ error }}</p>
-      <button @click="error = null" class="w-8 h-8 flex items-center justify-center text-red-400 hover:text-red-700 text-xl font-bold">×</button>
+    <div v-if="error" class="mb-6 p-4 bg-error/10 border border-error/20 rounded-xl flex justify-between items-center animate-in fade-in slide-in-from-top-4">
+      <p class="text-error text-sm font-medium">{{ error }}</p>
+      <button @click="error = null" class="w-8 h-8 flex items-center justify-center text-error/40 hover:text-error text-xl font-bold">×</button>
     </div>
 
     <div v-if="connecting" class="mb-6 p-8 bg-white border border-gray-100 rounded-xl text-center">
-      <div class="inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
+      <div class="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-3"></div>
       <p class="text-gray-500 font-medium">Connecting to MQTT broker...</p>
     </div>
 
     <!-- Message publishing section -->
     <div v-if="connected" class="mb-6 p-5 md:p-6 bg-white rounded-xl shadow-sm border border-gray-100 animate-in fade-in zoom-in-95">
       <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-        <span class="w-2 h-5 bg-blue-500 rounded-sm"></span>
+        <span class="w-2 h-5 bg-primary rounded-sm"></span>
         Publish Message
       </h3>
       <div class="flex flex-col gap-3">
         <input
           v-model="publishTopic"
           placeholder="Topic (e.g., test/topic)"
-          class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm"
+          class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary outline-none font-mono text-sm"
         >
         <textarea
           v-model="publishMessage"
           placeholder="Message payload"
-          class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm resize-none"
+          class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary outline-none font-mono text-sm resize-none"
           rows="3"
         ></textarea>
-        <button @click="publishMessageToTopic" class="w-full md:w-auto md:ml-auto px-10 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold transition-all shadow-md active:scale-95">
+        <button @click="publishMessageToTopic" class="btn btn-success w-full md:w-auto md:ml-auto px-10 shadow-md active:scale-95">
           Publish →
         </button>
       </div>
@@ -66,11 +66,11 @@
 
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col min-h-[400px]">
       <div class="p-5 md:p-6 border-b border-gray-50 flex justify-between items-center">
-        <h3 class="text-lg font-bold text-gray-800">Messages <span class="text-blue-500 font-mono ml-1">({{ messages.length }})</span></h3>
-        <button @click="clearMessages" class="text-xs font-bold text-gray-400 hover:text-red-500 transition-colors uppercase tracking-wider">Clear Log</button>
+        <h3 class="text-lg font-bold text-gray-800">Messages <span class="text-primary font-mono ml-1">({{ messages.length }})</span></h3>
+        <button @click="clearMessages" class="text-xs font-bold text-gray-400 hover:text-error transition-colors uppercase tracking-wider">Clear Log</button>
       </div>
 
-      <div v-if="messages.length === 0" class="flex-1 flex flex-center flex-col items-center justify-center p-12 text-gray-400">
+      <div v-if="messages.length === 0" class="flex-1 flex flex-col items-center justify-center p-12 text-gray-400">
         <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
           <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
         </div>
@@ -85,7 +85,7 @@
           :class="[message.topic === 'system' ? 'bg-gray-50 border-l-4 border-gray-400 text-gray-600 italic' : 'bg-white border border-gray-100 shadow-sm']"
         >
           <div class="flex justify-between items-center mb-2">
-            <span class="text-xs font-bold font-mono px-2 py-0.5 rounded bg-blue-50 text-blue-600" v-if="message.topic !== 'system'">{{ message.topic }}</span>
+            <span class="text-xs font-bold font-mono px-2 py-0.5 rounded bg-primary/10 text-primary" v-if="message.topic !== 'system'">{{ message.topic }}</span>
             <span class="text-xs font-bold font-mono text-gray-400 uppercase" v-else>SYSTEM</span>
             <span class="text-[10px] font-mono text-gray-300">{{ message.timestamp }}</span>
           </div>

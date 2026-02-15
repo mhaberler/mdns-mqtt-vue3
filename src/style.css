@@ -65,6 +65,27 @@ button:focus-visible {
   padding: 2em;
 }
 
+/* Button variants using Material design tokens */
+.btn {
+  @apply px-4 py-2 rounded-lg transition-colors font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.btn-primary {
+  @apply bg-primary text-white hover:opacity-90;
+}
+
+.btn-success {
+  @apply bg-success text-white hover:opacity-90;
+}
+
+.btn-danger {
+  @apply bg-error text-white hover:opacity-90;
+}
+
+.btn-warning {
+  @apply bg-warning text-white hover:opacity-90;
+}
+
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;

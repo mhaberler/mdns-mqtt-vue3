@@ -5,14 +5,14 @@
       <div class="flex flex-wrap gap-3">
         <input v-model="manualHost" placeholder="Enter MQTT broker IP" class="flex-1 min-w-[200px] px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
         <input v-model="manualPort" placeholder="Port (1883)" type="number" class="w-24 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-        <select v-model="selectedType" class="w-40 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+        <select v-model="selectedType" class="w-40 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white">
           <option value="_mqtt-ws._tcp.">MQTT WebSocket</option>
           <option value="_mqtt-wss._tcp.">MQTT WSS</option>
         </select>
-        <button @click="addManualService" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+        <button @click="addManualService" class="btn btn-primary">
           Add
         </button>
-        <button @click="toggleScan" :class="['px-4 py-2 rounded-lg transition-colors font-medium', isScanning ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-green-600 hover:bg-green-700 text-white']" :disabled="!isCapacitorApp">
+        <button @click="toggleScan" :class="['btn', isScanning ? 'btn-danger' : 'btn-success']" :disabled="!isCapacitorApp">
           {{ isScanning ? 'Stop Scan' : 'Start Scan' }}
         </button>
       </div>
@@ -39,14 +39,14 @@
       </div>
 
       <div v-for="(service, key) in services" :key="key"
-        class="group relative bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:border-blue-200 hover:shadow-md transition-all cursor-pointer"
-        :class="{'border-l-4 border-l-blue-500': service.discovered}"
+        class="group relative bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:border-primary/20 hover:shadow-md transition-all cursor-pointer"
+        :class="{'border-l-4 border-l-primary': service.discovered}"
         @click="handleServicePress(service)">
 
         <div class="flex justify-between items-start mb-3">
           <h3 class="font-bold text-lg text-gray-800">{{ service.name }}</h3>
           <button @click.stop="removeService(key)"
-            class="opacity-0 group-hover:opacity-100 absolute -top-2 -right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-red-600 transition-all">
+            class="opacity-0 group-hover:opacity-100 absolute -top-2 -right-2 w-7 h-7 btn-danger rounded-full flex items-center justify-center shadow-lg hover:opacity-100 transition-all">
             ×
           </button>
         </div>
@@ -58,13 +58,13 @@
         </div>
 
         <div class="mt-4 pt-4 border-t border-gray-50 flex justify-between items-center">
-          <span v-if="service.discovered" class="text-xs font-semibold text-blue-600 flex items-center gap-1">
-            <span class="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span>
+          <span v-if="service.discovered" class="text-xs font-semibold text-primary flex items-center gap-1">
+            <span class="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></span>
             mDNS {{ service.resolved ? '(Resolved)' : '(Resolving...)' }}
           </span>
           <span v-else class="text-xs font-semibold text-gray-400">Manual</span>
 
-          <span class="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded">
+          <span class="text-xs font-bold text-success bg-success/10 px-2 py-1 rounded">
             TAP TO CONNECT →
           </span>
         </div>
