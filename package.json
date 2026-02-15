@@ -9,6 +9,7 @@
   "scripts": {
     "clean": "bunx rimraf ./dist",
     "watch": "vue-tsc --watch",
+    "typecheck": "vue-tsc --noEmit",
     "dev": "vite --port=$npm_package_config_port --host",
     "build": "vite build",
     "preview": "vite preview",

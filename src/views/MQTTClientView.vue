@@ -80,33 +80,43 @@
   </div>
 </template>
 
-<script>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+<script lang="ts">
+import { defineComponent, ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
-import mqtt from 'mqtt'
+import mqtt, { MqttClient } from 'mqtt'
 
-export default {
+type MessageItem = { id: string; topic: string; payload: string; timestamp: string }
+
+type ServiceInfo = {
+  name?: string
+  type?: string
+  host?: string
+  port?: number
+  discovered?: boolean
+  txtRecord?: Record<string, any>
+}
+
+export default defineComponent({
   name: 'MQTTClientView',
   setup() {
     const route = useRoute()
-    
-    // Read service info from query parameters
-    const service = {
-      name: route.query.name || 'Unknown Service',
-      type: route.query.type || '_mqtt._tcp.',
-      host: route.query.host || 'localhost',
-      port: parseInt(route.query.port) || 1883,
-      discovered: route.query.discovered === 'true',
-      txtRecord: route.query.txtRecord ? JSON.parse(route.query.txtRecord) : {}
+
+    const service: ServiceInfo = {
+      name: (route.query.name as string) || 'Unknown Service',
+      type: (route.query.type as string) || '_mqtt._tcp.',
+      host: (route.query.host as string) || 'localhost',
+      port: parseInt((route.query.port as string) || '1883'),
+      discovered: (route.query.discovered as string) === 'true',
+      txtRecord: route.query.txtRecord ? JSON.parse(route.query.txtRecord as string) : {}
     }
-    
-    const connected = ref(false)
-    const connecting = ref(false)
-    const messages = ref([])
-    const error = ref(null)
-    const publishTopic = ref('test/topic')
-    const publishMessage = ref('Hello, MQTT!')
-    let mqttClient = null
+
+    const connected = ref<boolean>(false)
+    const connecting = ref<boolean>(false)
+    const messages = ref<MessageItem[]>([])
+    const error = ref<string | null>(null)
+    const publishTopic = ref<string>('test/topic')
+    const publishMessage = ref<string>('Hello, MQTT!')
+    let mqttClient: MqttClient | null = null
 
     const serviceName = computed(() => service.name || 'MQTT Service')
 
@@ -126,8 +136,8 @@ export default {
     const tlsPatterns = ['_mqtts._tcp.', '_mqtt-wss._tcp.', '._mqtts._tcp.', '._mqtt-wss._tcp.']
 
     const brokerUrl = computed(() => {
-      const isWebSocket = wsPatterns.some(pattern => service.type.includes(pattern))
-      const isTls = tlsPatterns.some(pattern => service.type.includes(pattern))
+      const isWebSocket = wsPatterns.some(pattern => (service.type || '').includes(pattern))
+      const isTls = tlsPatterns.some(pattern => (service.type || '').includes(pattern))
 
       if (isWebSocket) {
         const protocol = isTls ? 'wss' : 'ws'
@@ -151,28 +161,23 @@ export default {
           password: '',
           clean: true,
           connectTimeout: 10000,
-          reconnectPeriod: 0, // Disable auto-reconnect for cleaner error handling
+          reconnectPeriod: 0
         }
 
-        // For WebSocket connections, we need special handling
-        const isWebSocket = wsPatterns.some(pattern => service.type.includes(pattern))
+        const isWebSocket = wsPatterns.some(pattern => (service.type || '').includes(pattern))
         if (isWebSocket) {
-          // Use txtRecord path if available, otherwise default to '/mqtt'
           const wsPath = service.txtRecord?.path || '/mqtt'
           const wsUrl = `${brokerUrl.value}${wsPath}`
-          console.log('WebSocket path from txtRecord:', wsPath)
           mqttClient = mqtt.connect(wsUrl, options)
         } else {
           mqttClient = mqtt.connect(brokerUrl.value, options)
         }
 
         mqttClient.on('connect', () => {
-          console.log('Connected to MQTT broker')
           connected.value = true
           connecting.value = false
 
-          // Subscribe to all topics
-          mqttClient.subscribe('#', (err) => {
+          mqttClient!.subscribe('#', (err) => {
             if (err) {
               error.value = `Failed to subscribe: ${err.message}`
             } else {
@@ -181,25 +186,22 @@ export default {
           })
         })
 
-        mqttClient.on('error', (err) => {
-          console.error('MQTT connection error:', err)
-          error.value = `Connection failed: ${err.message || 'Unknown error'}`
+        mqttClient.on('error', (err: any) => {
+          error.value = `Connection failed: ${err?.message || 'Unknown error'}`
           connecting.value = false
           connected.value = false
         })
 
         mqttClient.on('close', () => {
-          console.log('MQTT connection closed')
           connected.value = false
           connecting.value = false
           addMessage('system', 'Connection closed')
         })
 
-        mqttClient.on('message', (topic, message) => {
-          let payload
+        mqttClient.on('message', (topic: string, message: Buffer) => {
+          let payload: string
           try {
             const messageStr = message.toString()
-            // Try to parse as JSON for pretty printing
             const parsed = JSON.parse(messageStr)
             payload = JSON.stringify(parsed, null, 2)
           } catch (e) {
@@ -208,19 +210,16 @@ export default {
           addMessage(topic, payload)
         })
 
-        // Set a timeout for connection
         setTimeout(() => {
           if (connecting.value) {
             error.value = 'Connection timeout - please check the broker address and port'
             connecting.value = false
-            if (mqttClient) {
-              mqttClient.end(true)
-            }
+            if (mqttClient) mqttClient.end(true)
           }
         }, 15000)
 
-      } catch (err) {
-        error.value = `Connection failed: ${err.message}`
+      } catch (err: any) {
+        error.value = `Connection failed: ${err?.message}`
         connecting.value = false
       }
     }
@@ -236,7 +235,7 @@ export default {
 
     const publishMessageToTopic = () => {
       if (mqttClient && connected.value && publishTopic.value && publishMessage.value) {
-        mqttClient.publish(publishTopic.value, publishMessage.value, (err) => {
+        mqttClient.publish(publishTopic.value, publishMessage.value, (err?: Error) => {
           if (err) {
             error.value = `Failed to publish: ${err.message}`
           } else {
@@ -246,16 +245,16 @@ export default {
       }
     }
 
-    const addMessage = (topic, payload) => {
+    const addMessage = (topic: string, payload: string) => {
       const timestamp = new Date().toLocaleTimeString()
-      const newMessage = {
+      const newMessage: MessageItem = {
         id: `${timestamp}-${Math.random().toString(16).substr(2, 8)}`,
         topic,
         payload,
         timestamp
       }
 
-      messages.value = [newMessage, ...messages.value].slice(0, 500) // Keep last 500 messages
+      messages.value = [newMessage, ...messages.value].slice(0, 500)
     }
 
     const clearMessages = () => {
@@ -264,7 +263,6 @@ export default {
 
     onMounted(() => {
       addMessage('system', `Configured for ${serviceName.value}`)
-      // Don't auto-connect, let user initiate
     })
 
     onUnmounted(() => {
@@ -289,7 +287,7 @@ export default {
       clearMessages
     }
   }
-}
+})
 </script>
 
 <style scoped>

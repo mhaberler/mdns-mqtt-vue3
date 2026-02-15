@@ -6,5 +6,3 @@ import router from './router'
 const app = createApp(App)
 app.use(router)
 app.mount('#app')
-
-// NOTE: this file is deprecated — migrated to `src/main.ts`. Please delete this file when ready.
