@@ -60,3 +60,24 @@ body {
     color: #747bff;
   }
 }
+
+/* Ensure readable text on light surfaces (cards/fields use bg-white / bg-gray-50)
+   Inputs inherit root color by default — force a dark text color on light backgrounds */
+.bg-white,
+.bg-gray-50 {
+  color: #213547;
+}
+
+.bg-white input,
+.bg-white textarea,
+.bg-white select,
+.bg-gray-50 input,
+.bg-gray-50 textarea,
+.bg-gray-50 select {
+  color: #213547;
+}
+
+.bg-white ::placeholder,
+.bg-gray-50 ::placeholder {
+  color: rgba(33,53,71,0.5);
+}
