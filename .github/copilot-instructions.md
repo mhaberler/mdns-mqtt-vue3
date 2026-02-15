@@ -26,7 +26,7 @@ Vue 3 + Capacitor app for MQTT broker discovery (mDNS/NSD) and client connectivi
   - `bun run dev` (Vite on :8102)
   - `bun run build` / `bun run sync` / `bun run android|ios`
 - Type-checking (now automated):
-  - `npm run typecheck` — runs `vue-tsc --noEmit` (CI also runs this on PRs)
+  - `bun run typecheck` — runs `vue-tsc --noEmit` (CI also runs this on PRs)
 - CI: GitHub Actions workflow `.github/workflows/typecheck.yml` runs `vue-tsc` on push/PRs.
 
 ## TypeScript / migration notes
@@ -53,7 +53,7 @@ Vue 3 + Capacitor app for MQTT broker discovery (mDNS/NSD) and client connectivi
 ## When contributing
 
 - Prefer TypeScript for new code; keep Options API with `setup()`.
-- Run `npm run typecheck` before opening a PR.
+- Run `bun run typecheck` before opening a PR.
 - Keep changes scoped — this repo focuses only on discovery + client UI (no backend changes here).
 
 ---
