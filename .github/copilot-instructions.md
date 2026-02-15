@@ -1,51 +1,61 @@
-<!-- Use this file to provide workspace-specific custom instructions to Copilot. For more details, visit https://code.visualstudio.com/docs/copilot/copilot-customization#_use-a-githubcopilotinstructionsmd-file -->
+<!-- Use this file to provide workspace-specific custom instructions to Copilot. -->
 
-# MQTT mDNS Vue 3 + Capacitor Project
+# MQTT mDNS Vue 3 + Capacitor (updated)
 
-Vue 3 + Capacitor app for MQTT broker discovery (mDNS/NSD) and client connectivity on Android, iOS, and web.
+Vue 3 + Capacitor app for MQTT broker discovery (mDNS/NSD) and client connectivity on Android, iOS, and web. This repository is undergoing an incremental TypeScript migration.
 
-## Code Style
+## Code style & TypeScript policy
 
-- **Options API with `setup()`** — components use `export default { name, setup() { ... return { ... } } }`, NOT `<script setup>`. Follow this pattern for new components (see `src/views/ScannerView.vue`).
-- **Pure JavaScript** — no TypeScript in source files despite `vue-tsc` being installed. Use `.js`/`.vue` files.
-- **Scoped CSS** in view components. Global resets live in `src/App.vue` and `src/style.css`.
-- Hardcoded Material-palette hex colors (`#4CAF50`, `#2196F3`, `#F44336`, `#FF9800`). BEM-like flat class names (`.scanner-container`, `.service-item`).
-- No path aliases — use relative imports (`'../views/ScannerView.vue'`).
+- **Options API with `setup()`** — keep `export default { name, setup() { ... return { ... } } }`. Do **not** use `<script setup>`.
+- **Incremental TypeScript migration** — new components and non-Vue modules should use TypeScript (`.ts` / `<script lang="ts">`). Existing JS is allowed while migrating; `tsconfig.json` uses `allowJs: true` to support that. `strict` mode is enabled — fix type errors on conversion.
+- `src/shims-vue.d.ts` and ambient typings (e.g. `src/types/zero-conf.d.ts`) exist for plugin types.
+- **Scoped CSS** in view components; global resets in `src/App.vue` and `src/style.css`.
+- Design tokens/colors: use the existing Material hexs (`#4CAF50`, `#2196F3`, `#F44336`, `#FF9800`). Follow the BEM-like flat class names (e.g. `.scanner-container`, `.service-item`).
+- **No path aliases** — use relative imports (`'../views/ScannerView.vue'`).
 
-## Architecture
+## Architecture (unchanged)
 
-- **Two views only**: `ScannerView.vue` (broker list + mDNS discovery) → `MQTTClientView.vue` (connect/subscribe/publish).
-- **No shared state** — broker config is passed via **URL query params** (`router.push({ query: { name, type, host, port, txtRecord } })`). MQTTClientView reads `useRoute().query` on mount.
-- **MQTT connections are in-component** — `mqtt.connect()` lives directly in MQTTClientView's `setup()`. No service layer or composable.
-- **mDNS discovery** uses `@mhaberler/capacitor-zeroconf-nsd` plugin, gated by `Capacitor.isNativePlatform()` (disabled on web). Watches `_mqtt-ws._tcp.` and `_mqtt-wss._tcp.` service types.
-- **No persistence** — broker list resets on refresh. Defaults are hardcoded in ScannerView.
+- Two views only: `ScannerView.vue` → `MQTTClientView.vue`.
+- No shared global state — broker selection/config flows via URL query params; MQTT client lifecycle stays in `MQTTClientView`.
+- mDNS discovery uses `@mhaberler/capacitor-zeroconf-nsd` (native-only). The repository now includes ambient typings for this plugin.
 
-## Build and Test
+## Build, test & CI
 
-```bash
-bun install              # Install dependencies (bun is the package manager)
-bun run dev              # Vite dev server on 0.0.0.0:8102
-bun run build            # Production build → dist/
-bun run sync             # cap sync — copy web assets to native projects
-bun run android          # cap run android
-bun run ios              # cap run ios
-bun run open:android     # Open in Android Studio
-bun run open:ios         # Open in Xcode
-bun run clean            # Remove dist/
-```
+- Local dev (bun):
+  - `bun install`
+  - `bun run dev` (Vite on :8102)
+  - `bun run build` / `bun run sync` / `bun run android|ios`
+- Type-checking (now automated):
+  - `npm run typecheck` — runs `vue-tsc --noEmit` (CI also runs this on PRs)
+- CI: GitHub Actions workflow `.github/workflows/typecheck.yml` runs `vue-tsc` on push/PRs.
 
-No tests exist. No test framework is configured.
+## TypeScript / migration notes
 
-## Project Conventions
+- `tsconfig.json` is configured for incremental migration (`allowJs: true`) and `strict: true` is enabled.
+- Preferred file types:
+  - Vue components → `<script lang="ts">` + Options API
+  - Utility modules → `.ts`
+- Key TypeScript files added: `src/main.ts`, `src/polyfills.ts`, `src/router/index.ts`, `src/shims-vue.d.ts`, `src/types/zero-conf.d.ts`.
+- Keep the polyfill import order: `src/main.ts` MUST import `./polyfills` first.
 
-- **Polyfill ordering is critical**: `src/main.js` imports `'./polyfills'` FIRST (sets `window.Buffer` and `window.process`), before Vue or MQTT imports. `vite.config.js` provides `define` and `resolve.alias` for `buffer`, `process`, `stream-browserify`, `crypto-browserify`.
-- **MQTT error handling**: 10s `connectTimeout` + 15s manual `setTimeout` fallback. `reconnectPeriod: 0` (no auto-reconnect). Errors shown in a dismissible banner.
-- **Message cap**: 500 messages max, newest first. JSON payloads auto-formatted.
-- **Protocol detection**: Service type → protocol mapping via `wsPatterns`/`tlsPatterns` arrays to determine `ws://`, `wss://`, `mqtt://`, or `mqtts://`.
-- **Android cleartext**: `capacitor.config.json` enables `cleartext: true` + `allowMixedContent: true` for plain WS connections on Android.
+## Project conventions & runtime behavior
 
-## Integration Points
+- MQTT connection behavior unchanged: `connectTimeout`, `reconnectPeriod: 0`, manual 15s fallback.
+- Messages capped at 500, newest-first; JSON payloads are pretty-printed in the UI.
+- Protocol detection still uses service-type pattern matching (WS/TLS vs TCP).
+- Manual broker entries use keys like `manual-<timestamp>`.
 
-- `@mhaberler/capacitor-zeroconf-nsd` — `ZeroConf.watch({ type, domain }, callback)` / `ZeroConf.unwatch()`. Callback: `{ action: 'added'|'resolved'|'removed', service }`.
-- `mqtt` (mqtt.js) — `mqtt.connect(url, opts)` over WebSocket. Subscribes to `#` wildcard on connect.
-- Service key format: `${name}_${domain}_${normalizedType}` (dots stripped from type). Manual entries keyed as `manual-${Date.now()}`.
+## Integration points (typed)
+
+- `@mhaberler/capacitor-zeroconf-nsd` — typed ambient declarations in `src/types/zero-conf.d.ts`. Use `ZeroConf.watch()` / `ZeroConf.unwatch()` and the declared `ZeroConfService` shape.
+- `mqtt` — `mqtt.connect(url, opts)` in `MQTTClientView` (no service layer).
+
+## When contributing
+
+- Prefer TypeScript for new code; keep Options API with `setup()`.
+- Run `npm run typecheck` before opening a PR.
+- Keep changes scoped — this repo focuses only on discovery + client UI (no backend changes here).
+
+---
+
+If you want the older, JS-only conventions restored temporarily, say so and include the files to keep unchanged.
