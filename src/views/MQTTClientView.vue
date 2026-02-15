@@ -24,7 +24,7 @@
         >
           {{ connected ? 'Disconnect' : connecting ? 'Connecting...' : 'Connect' }}
         </button>
-        <button @click="$router.back()" class="btn bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold shadow-sm">
+        <button @click="goBack" class="btn bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold shadow-sm">
           Back
         </button>
       </div>
@@ -98,8 +98,9 @@
 
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import mqtt, { MqttClient } from 'mqtt'
+import { setAutoConnectEnabled } from '../utils/storage'
 
 type MessageItem = { id: string; topic: string; payload: string; timestamp: string }
 
@@ -116,6 +117,7 @@ export default defineComponent({
   name: 'MQTTClientView',
   setup() {
     const route = useRoute()
+    const router = useRouter()
 
     const service: ServiceInfo = {
       name: (route.query.name as string) || 'Unknown Service',
@@ -271,8 +273,16 @@ export default defineComponent({
       messages.value = []
     }
 
+    const goBack = () => {
+      // Disable auto-connect to prevent immediate reconnection
+      setAutoConnectEnabled(false)
+      router.back()
+    }
+
     onMounted(() => {
       addMessage('system', `Configured for ${serviceName.value}`)
+      // Auto-connect when entering the view
+      connectToMQTT()
     })
 
     onUnmounted(() => {
@@ -293,7 +303,8 @@ export default defineComponent({
       connectToMQTT,
       disconnectClient,
       publishMessageToTopic,
-      clearMessages
+      clearMessages,
+      goBack
     }
   }
 })

@@ -2,30 +2,51 @@
   <div class="w-full min-h-screen p-4 md:p-6 bg-gray-50">
     <div class="mb-6 p-5 md:p-6 bg-white rounded-xl shadow-sm border border-gray-100">
       <h1 class="text-2xl font-bold text-gray-800 mb-6">MQTT/MQTT-WS mDNS Scanner</h1>
-      <div class="flex items-center gap-4 mb-4">
+      <div class="flex items-center gap-4 mb-4 flex-wrap">
         <label class="flex items-center gap-2">
           <input type="checkbox" v-model="autoScanEnabled" class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
           <span class="text-sm font-medium text-gray-700">Auto Scan</span>
         </label>
-        <button @click="handleAutoConnect" :disabled="!preferredBroker || isAutoConnecting" class="btn btn-secondary" :class="{ 'opacity-50 cursor-not-allowed': !preferredBroker || isAutoConnecting }">
-          {{ isAutoConnecting ? 'Connecting...' : 'Auto Connect' }}
-        </button>
+        <label class="flex items-center gap-2" :class="{ 'opacity-50 cursor-not-allowed': !preferredBroker }">
+          <input type="checkbox" v-model="autoConnectEnabled" :disabled="!preferredBroker" class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+          <span class="text-sm font-medium text-gray-700">Auto Connect</span>
+        </label>
       </div>
-      <div v-if="preferredBroker" class="mb-4 p-3 bg-blue-50 text-blue-700 rounded-lg text-sm border border-blue-100">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <p><strong>Preferred Broker:</strong> {{ preferredBroker.name }}</p>
-            <span v-if="preferredBrokerStatus === 'found'" class="text-xs font-semibold px-2 py-0.5 rounded" style="background-color: #4CAF50; color: white;">
-              ✓ Found
-            </span>
-            <span v-else-if="preferredBrokerStatus === 'searching'" class="text-xs font-semibold px-2 py-0.5 rounded" style="background-color: #FF9800; color: white;">
-              ⏳ Searching...
-            </span>
-            <span v-else class="text-xs font-semibold px-2 py-0.5 rounded" style="background-color: #F44336; color: white;">
-              ✗ Not found
-            </span>
+      <div v-if="preferredBroker" class="mb-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200 shadow-sm">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div class="flex-1 space-y-2">
+            <div class="flex items-center gap-3">
+              <div class="flex items-center justify-center w-10 h-10 rounded-full bg-blue-500 text-white flex-shrink-0">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                </svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <h3 class="text-base font-bold text-gray-800 break-words">{{ preferredBroker.name }}</h3>
+                  <span v-if="preferredBrokerStatus === 'found'" class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full" style="background-color: #4CAF50; color: white;">
+                    <span class="w-1.5 h-1.5 bg-white rounded-full"></span>
+                    Found
+                  </span>
+                  <span v-else-if="preferredBrokerStatus === 'searching'" class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full animate-pulse" style="background-color: #FF9800; color: white;">
+                    <span class="w-1.5 h-1.5 bg-white rounded-full animate-ping"></span>
+                    Searching
+                  </span>
+                  <span v-else class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full" style="background-color: #F44336; color: white;">
+                    <span class="w-1.5 h-1.5 bg-white rounded-full"></span>
+                    Not found
+                  </span>
+                </div>
+                <div class="flex items-center gap-3 mt-1 text-xs text-gray-600">
+                  <span class="font-mono">{{ preferredBroker.host }}:{{ preferredBroker.port }}</span>
+                  <span class="px-2 py-0.5 bg-white/60 rounded text-[10px] font-medium text-gray-500">{{ preferredBroker.type }}</span>
+                </div>
+              </div>
+            </div>
           </div>
-          <button @click="clearPreferredBroker" class="text-xs underline hover:no-underline">Clear</button>
+          <button @click="clearPreferredBroker" class="btn bg-white hover:bg-red-50 text-red-600 border border-red-200 text-sm font-semibold shadow-sm flex-shrink-0 self-start md:self-center">
+            Clear
+          </button>
         </div>
       </div>
       <div class="flex flex-wrap gap-3">
@@ -116,7 +137,7 @@ import { defineComponent, ref, onUnmounted, onMounted, watch, computed } from 'v
 import { useRouter } from 'vue-router'
 import { Capacitor } from '@capacitor/core'
 import { ZeroConf, type ZeroConfService, type ZeroConfAction } from '@mhaberler/capacitor-zeroconf-nsd'
-import { getPreferredBroker, setPreferredBroker, getAutoScanEnabled, setAutoScanEnabled } from '../utils/storage'
+import { getPreferredBroker, setPreferredBroker, getAutoScanEnabled, setAutoScanEnabled, getAutoConnectEnabled, setAutoConnectEnabled } from '../utils/storage'
 
 function removeLeadingAndTrailingDots(str: string): string {
   return str.replace(/^\.+|\.+$/g, '')
@@ -149,21 +170,17 @@ export default defineComponent({
      * Enhanced Auto-Connect Implementation
      *
      * Key improvements:
-     * 1. Domain-aware matching: Stores and matches on name+domain+type for reliability
-     * 2. Graceful fallback: Exact match → fuzzy match (name+type) → manual-always-available
-     * 3. Visual feedback: Status badges (Found/Searching/Not found) + gold outline on preferred card
-     * 4. Better timeout: 12s polling instead of hard-coded 5s wait
-     * 5. Loading state: isAutoConnecting prevents double-clicks and shows "Connecting..." text
+     * 1. Simple matching: Compares instance name and port (as per requirement)
+     * 2. Visual feedback: Status badges (Found/Searching/Not found) + gold outline on preferred card
+     * 3. Better timeout: 12s polling instead of hard-coded 5s wait
+     * 4. Loading state: isAutoConnecting prevents double-clicks and shows "Connecting..." text
      *
      * Edge cases handled:
      * - Preferred broker is manual service (always "available", no scan needed)
      * - Preferred broker found but not yet resolved (waits for resolution before connecting)
-     * - Multiple services match criteria (connects to first match, logs warning if domain mismatch)
      * - Network unavailable / non-native platform (shows helpful error message)
      * - Scan already in progress (reuses existing scan, no duplicate start)
      * - Auto-connect clicked multiple times (debounced via isAutoConnecting flag)
-     * - Domain changes (fuzzy fallback handles broker moving to different domain/network)
-     * - Stored broker lacks domain field (graceful - uses fuzzy match as fallback)
      */
     const router = useRouter()
     const services = ref<Record<string, ServiceEntry>>({})
@@ -175,10 +192,12 @@ export default defineComponent({
     const scanError = ref<string>('')
 
     const autoScanEnabled = ref<boolean>(getAutoScanEnabled())
+    const autoConnectEnabled = ref<boolean>(getAutoConnectEnabled())
     const preferredBroker = ref<ServiceEntry | null>(getPreferredBroker())
     const isAutoConnecting = ref<boolean>(false)
 
     watch(autoScanEnabled, (newVal) => setAutoScanEnabled(newVal))
+    watch(autoConnectEnabled, (newVal) => setAutoConnectEnabled(newVal))
 
     // Service types to scan for
     const serviceTypes: string[] = [
@@ -343,7 +362,7 @@ export default defineComponent({
 
     /**
      * Find preferred broker in current services.
-     * Strategy: exact match (name+domain+type) → fuzzy (name+type) → manual
+     * Strategy: Match by instance name and port (as per requirement)
      * Returns match status and service if found.
      */
     const findPreferredBroker = (): BrokerMatchResult => {
@@ -354,42 +373,18 @@ export default defineComponent({
       const preferred = preferredBroker.value
       const allServices = Object.values(services.value)
 
-      // Manual services are always "available"
-      if (preferred.discovered === false) {
-        const manual = allServices.find(s =>
-          s.name === preferred.name &&
-          s.type === preferred.type &&
-          s.discovered === false
-        )
-        if (manual) {
-          return { status: 'manual', service: manual }
-        }
-      }
-
-      // Try exact match: name + domain + type
-      if (preferred.domain) {
-        const exact = allServices.find(s =>
-          s.name === preferred.name &&
-          s.domain === preferred.domain &&
-          s.type === preferred.type &&
-          s.discovered === true
-        )
-        if (exact) {
-          return { status: 'exact', service: exact }
-        }
-      }
-
-      // Fallback: fuzzy match (name + type, ignore domain)
-      const fuzzy = allServices.find(s =>
+      // Match on name + port
+      const matched = allServices.find(s =>
         s.name === preferred.name &&
-        s.type === preferred.type &&
-        s.discovered === true
+        s.port === preferred.port
       )
-      if (fuzzy) {
-        if (preferred.domain && fuzzy.domain !== preferred.domain) {
-          console.warn(`Fuzzy match: domain mismatch (expected: ${preferred.domain}, got: ${fuzzy.domain})`)
+
+      if (matched) {
+        // Distinguish between manual and discovered services
+        if (matched.discovered === false) {
+          return { status: 'manual', service: matched }
         }
-        return { status: 'fuzzy', service: fuzzy }
+        return { status: 'exact', service: matched }
       }
 
       return { status: 'not-found', service: null }
@@ -487,6 +482,14 @@ export default defineComponent({
       return 'not-found'
     })
 
+    // Watch for preferred broker being found and auto-connect if enabled
+    watch(preferredBrokerStatus, (newStatus) => {
+      if (newStatus === 'found' && autoConnectEnabled.value && preferredBrokerService.value && !isAutoConnecting.value) {
+        // Auto-connect when preferred broker is found and auto-connect is enabled
+        handleServicePress(preferredBrokerService.value)
+      }
+    })
+
     return {
       services,
       manualHost,
@@ -496,6 +499,7 @@ export default defineComponent({
       isCapacitorApp,
       scanError,
       autoScanEnabled,
+      autoConnectEnabled,
       preferredBroker,
       preferredBrokerStatus,
       preferredBrokerService,

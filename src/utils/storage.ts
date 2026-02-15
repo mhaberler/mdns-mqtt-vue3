@@ -1,12 +1,9 @@
 /**
  * Service entry representing an MQTT broker.
  *
- * mDNS Matching Strategy:
- * - Most stable identifier: name + domain + type composite
- * - domain is typically 'local' but can vary in complex networks
- * - IP addresses and hostname can change (DHCP, renames)
- * - Exact matching (name+domain+type) is preferred
- * - Fuzzy fallback (name+type) handles domain changes but may match wrong broker
+ * Matching Strategy:
+ * Preferred broker is matched against discovered services by comparing
+ * instance name and port number.
  */
 type ServiceEntry = {
   name: string
@@ -23,6 +20,7 @@ type ServiceEntry = {
 
 const PREFERRED_BROKER_KEY = 'preferredBroker'
 const AUTO_SCAN_KEY = 'autoScanEnabled'
+const AUTO_CONNECT_KEY = 'autoConnectEnabled'
 
 export function getPreferredBroker(): ServiceEntry | null {
   try {
@@ -61,5 +59,23 @@ export function setAutoScanEnabled(enabled: boolean): void {
     localStorage.setItem(AUTO_SCAN_KEY, JSON.stringify(enabled))
   } catch (error) {
     console.error('Error saving auto scan setting:', error)
+  }
+}
+
+export function getAutoConnectEnabled(): boolean {
+  try {
+    const stored = localStorage.getItem(AUTO_CONNECT_KEY)
+    return stored ? JSON.parse(stored) : false
+  } catch (error) {
+    console.error('Error loading auto connect setting:', error)
+    return false
+  }
+}
+
+export function setAutoConnectEnabled(enabled: boolean): void {
+  try {
+    localStorage.setItem(AUTO_CONNECT_KEY, JSON.stringify(enabled))
+  } catch (error) {
+    console.error('Error saving auto connect setting:', error)
   }
 }
