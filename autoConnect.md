@@ -15,15 +15,5 @@ add a button to clear the preferred broker attribute besides the previous field.
 
 discuss how the mDNS announcement can be stored effectively to find broker instance.
 
----
 
-Implementation completed:
-
-- Created `src/utils/storage.ts` for localStorage helpers.
-- Added auto-scan switch and auto-connect button to ScannerView.
-- Added preferred broker display and clear button.
-- Added preferred button (★) to each service card.
-- Auto-scan starts on ScannerView load if enabled.
-- Auto-connect re-scans if needed, then connects if found.
-- Stores full ServiceEntry object for preferred broker, including txtRecord for complete reconnection data.
-
+Match a scan result against the preferred broker by comparing instance name and the port.

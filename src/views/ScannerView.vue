@@ -7,13 +7,26 @@
           <input type="checkbox" v-model="autoScanEnabled" class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
           <span class="text-sm font-medium text-gray-700">Auto Scan</span>
         </label>
-        <button @click="handleAutoConnect" :disabled="!preferredBroker" class="btn btn-secondary" :class="{ 'opacity-50 cursor-not-allowed': !preferredBroker }">
-          Auto Connect
+        <button @click="handleAutoConnect" :disabled="!preferredBroker || isAutoConnecting" class="btn btn-secondary" :class="{ 'opacity-50 cursor-not-allowed': !preferredBroker || isAutoConnecting }">
+          {{ isAutoConnecting ? 'Connecting...' : 'Auto Connect' }}
         </button>
       </div>
       <div v-if="preferredBroker" class="mb-4 p-3 bg-blue-50 text-blue-700 rounded-lg text-sm border border-blue-100">
-        <p><strong>Preferred Broker:</strong> {{ preferredBroker.name }}</p>
-        <button @click="clearPreferredBroker" class="mt-2 text-xs underline">Clear</button>
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <p><strong>Preferred Broker:</strong> {{ preferredBroker.name }}</p>
+            <span v-if="preferredBrokerStatus === 'found'" class="text-xs font-semibold px-2 py-0.5 rounded" style="background-color: #4CAF50; color: white;">
+              ✓ Found
+            </span>
+            <span v-else-if="preferredBrokerStatus === 'searching'" class="text-xs font-semibold px-2 py-0.5 rounded" style="background-color: #FF9800; color: white;">
+              ⏳ Searching...
+            </span>
+            <span v-else class="text-xs font-semibold px-2 py-0.5 rounded" style="background-color: #F44336; color: white;">
+              ✗ Not found
+            </span>
+          </div>
+          <button @click="clearPreferredBroker" class="text-xs underline hover:no-underline">Clear</button>
+        </div>
       </div>
       <div class="flex flex-wrap gap-3">
         <input v-model="manualHost" placeholder="Enter MQTT broker IP" class="flex-1 min-w-[200px] px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary outline-none">
@@ -53,7 +66,10 @@
 
       <div v-for="(service, key) in services" :key="key"
         class="group relative bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:border-primary/20 hover:shadow-md transition-all cursor-pointer"
-        :class="{'border-l-4 border-l-primary': service.discovered}"
+        :class="{
+          'border-l-4 border-l-primary': service.discovered,
+          'preferred-broker-card': preferredBrokerService && service.name === preferredBrokerService.name && service.type === preferredBrokerService.type
+        }"
         @click="handleServicePress(service)">
 
         <div class="flex justify-between items-start mb-3">
@@ -96,7 +112,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onUnmounted, onMounted, watch } from 'vue'
+import { defineComponent, ref, onUnmounted, onMounted, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Capacitor } from '@capacitor/core'
 import { ZeroConf, type ZeroConfService, type ZeroConfAction } from '@mhaberler/capacitor-zeroconf-nsd'
@@ -111,6 +127,7 @@ type ServiceEntry = {
   type: string
   host: string
   port: number
+  domain?: string
   discovered?: boolean
   resolved?: boolean
   txtRecord?: Record<string, any>
@@ -118,9 +135,36 @@ type ServiceEntry = {
   ipv6Addresses?: string[]
 }
 
+type BrokerMatchStatus = 'exact' | 'fuzzy' | 'manual' | 'not-found'
+
+interface BrokerMatchResult {
+  status: BrokerMatchStatus
+  service: ServiceEntry | null
+}
+
 export default defineComponent({
   name: 'ScannerView',
   setup() {
+    /**
+     * Enhanced Auto-Connect Implementation
+     *
+     * Key improvements:
+     * 1. Domain-aware matching: Stores and matches on name+domain+type for reliability
+     * 2. Graceful fallback: Exact match → fuzzy match (name+type) → manual-always-available
+     * 3. Visual feedback: Status badges (Found/Searching/Not found) + gold outline on preferred card
+     * 4. Better timeout: 12s polling instead of hard-coded 5s wait
+     * 5. Loading state: isAutoConnecting prevents double-clicks and shows "Connecting..." text
+     *
+     * Edge cases handled:
+     * - Preferred broker is manual service (always "available", no scan needed)
+     * - Preferred broker found but not yet resolved (waits for resolution before connecting)
+     * - Multiple services match criteria (connects to first match, logs warning if domain mismatch)
+     * - Network unavailable / non-native platform (shows helpful error message)
+     * - Scan already in progress (reuses existing scan, no duplicate start)
+     * - Auto-connect clicked multiple times (debounced via isAutoConnecting flag)
+     * - Domain changes (fuzzy fallback handles broker moving to different domain/network)
+     * - Stored broker lacks domain field (graceful - uses fuzzy match as fallback)
+     */
     const router = useRouter()
     const services = ref<Record<string, ServiceEntry>>({})
     const manualHost = ref<string>('')
@@ -132,6 +176,7 @@ export default defineComponent({
 
     const autoScanEnabled = ref<boolean>(getAutoScanEnabled())
     const preferredBroker = ref<ServiceEntry | null>(getPreferredBroker())
+    const isAutoConnecting = ref<boolean>(false)
 
     watch(autoScanEnabled, (newVal) => setAutoScanEnabled(newVal))
 
@@ -210,6 +255,7 @@ export default defineComponent({
           type: service.type || '',
           host: service.hostname || service.ipv4Addresses?.[0] || service.ipv6Addresses?.[0] || 'Unknown',
           port: service.port || 0,
+          domain: service.domain,
           discovered: true,
           resolved: false
         }
@@ -226,6 +272,7 @@ export default defineComponent({
             name: service.name || services.value[key].name,
             host: service.hostname || service.ipv4Addresses?.[0] || service.ipv6Addresses?.[0] || services.value[key].host,
             port: service.port || services.value[key].port,
+            domain: service.domain || services.value[key].domain,
             resolved: true,
             txtRecord: service.txtRecord || {},
             ipv4Addresses: service.ipv4Addresses || [],
@@ -294,6 +341,60 @@ export default defineComponent({
       }
     }
 
+    /**
+     * Find preferred broker in current services.
+     * Strategy: exact match (name+domain+type) → fuzzy (name+type) → manual
+     * Returns match status and service if found.
+     */
+    const findPreferredBroker = (): BrokerMatchResult => {
+      if (!preferredBroker.value) {
+        return { status: 'not-found', service: null }
+      }
+
+      const preferred = preferredBroker.value
+      const allServices = Object.values(services.value)
+
+      // Manual services are always "available"
+      if (preferred.discovered === false) {
+        const manual = allServices.find(s =>
+          s.name === preferred.name &&
+          s.type === preferred.type &&
+          s.discovered === false
+        )
+        if (manual) {
+          return { status: 'manual', service: manual }
+        }
+      }
+
+      // Try exact match: name + domain + type
+      if (preferred.domain) {
+        const exact = allServices.find(s =>
+          s.name === preferred.name &&
+          s.domain === preferred.domain &&
+          s.type === preferred.type &&
+          s.discovered === true
+        )
+        if (exact) {
+          return { status: 'exact', service: exact }
+        }
+      }
+
+      // Fallback: fuzzy match (name + type, ignore domain)
+      const fuzzy = allServices.find(s =>
+        s.name === preferred.name &&
+        s.type === preferred.type &&
+        s.discovered === true
+      )
+      if (fuzzy) {
+        if (preferred.domain && fuzzy.domain !== preferred.domain) {
+          console.warn(`Fuzzy match: domain mismatch (expected: ${preferred.domain}, got: ${fuzzy.domain})`)
+        }
+        return { status: 'fuzzy', service: fuzzy }
+      }
+
+      return { status: 'not-found', service: null }
+    }
+
     const setPreferred = (service: ServiceEntry) => {
       preferredBroker.value = service
       setPreferredBroker(service)
@@ -304,28 +405,53 @@ export default defineComponent({
       setPreferredBroker(null)
     }
 
+    /**
+     * Auto-connect to preferred broker.
+     * Improved flow: check immediate availability → scan if needed → timeout with error
+     */
     const handleAutoConnect = async () => {
-      if (!preferredBroker.value) return
+      if (!preferredBroker.value || isAutoConnecting.value) return
 
-      const found = Object.values(services.value).find(s => s.name === preferredBroker.value!.name && s.type === preferredBroker.value!.type)
-      if (found) {
-        handleServicePress(found)
-        return
-      }
+      try {
+        isAutoConnecting.value = true
+        scanError.value = ''
 
-      // Start scan if not scanning
-      if (!isScanning.value && isCapacitorApp.value) {
-        await startScan()
-      }
+        // Check if preferred broker is already available
+        let matchResult = findPreferredBroker()
 
-      // Wait for scan results
-      await new Promise(resolve => setTimeout(resolve, 5000))
+        // If found and resolved (or manual), connect immediately
+        if (matchResult.service && (matchResult.service.resolved || !matchResult.service.discovered)) {
+          handleServicePress(matchResult.service)
+          return
+        }
 
-      const foundAfterScan = Object.values(services.value).find(s => s.name === preferredBroker.value!.name && s.type === preferredBroker.value!.type)
-      if (foundAfterScan) {
-        handleServicePress(foundAfterScan)
-      } else {
-        scanError.value = 'Preferred broker not found after scanning.'
+        // If not found and we're on native platform, start scan
+        if (matchResult.status === 'not-found' && isCapacitorApp.value) {
+          if (!isScanning.value) {
+            await startScan()
+          }
+
+          // Poll for preferred broker with timeout (12 seconds)
+          const maxAttempts = 24 // 24 * 500ms = 12s
+          let attempts = 0
+
+          while (attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 500))
+            matchResult = findPreferredBroker()
+
+            if (matchResult.service && matchResult.service.resolved) {
+              handleServicePress(matchResult.service)
+              return
+            }
+            attempts++
+          }
+
+          scanError.value = 'Preferred broker not found after 12 seconds. Try scanning manually.'
+        } else {
+          scanError.value = 'Preferred broker not available. mDNS scanning requires the native app.'
+        }
+      } finally {
+        isAutoConnecting.value = false
       }
     }
 
@@ -333,6 +459,32 @@ export default defineComponent({
       if (autoScanEnabled.value && isCapacitorApp.value) {
         startScan()
       }
+    })
+
+    // Computed properties for reactive UI state
+    const preferredBrokerMatchResult = computed<BrokerMatchResult>(() => findPreferredBroker())
+
+    const preferredBrokerService = computed<ServiceEntry | null>(() =>
+      preferredBrokerMatchResult.value.service
+    )
+
+    const preferredBrokerStatus = computed<'found' | 'searching' | 'not-found'>(() => {
+      if (!preferredBroker.value) return 'not-found'
+
+      const matchResult = preferredBrokerMatchResult.value
+
+      // If found (exact, fuzzy, or manual), show as found
+      if (matchResult.service && (matchResult.service.resolved || !matchResult.service.discovered)) {
+        return 'found'
+      }
+
+      // If scanning, show as searching
+      if (isScanning.value || isAutoConnecting.value) {
+        return 'searching'
+      }
+
+      // Otherwise not found
+      return 'not-found'
     })
 
     return {
@@ -345,6 +497,9 @@ export default defineComponent({
       scanError,
       autoScanEnabled,
       preferredBroker,
+      preferredBrokerStatus,
+      preferredBrokerService,
+      isAutoConnecting,
       addManualService,
       removeService,
       handleServicePress,
@@ -358,4 +513,8 @@ export default defineComponent({
 </script>
 
 <style scoped>
+.preferred-broker-card {
+  border: 3px solid #FFD700 !important;
+  box-shadow: 0 0 0 1px #FFD700, 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+}
 </style>

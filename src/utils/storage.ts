@@ -1,8 +1,19 @@
+/**
+ * Service entry representing an MQTT broker.
+ *
+ * mDNS Matching Strategy:
+ * - Most stable identifier: name + domain + type composite
+ * - domain is typically 'local' but can vary in complex networks
+ * - IP addresses and hostname can change (DHCP, renames)
+ * - Exact matching (name+domain+type) is preferred
+ * - Fuzzy fallback (name+type) handles domain changes but may match wrong broker
+ */
 type ServiceEntry = {
   name: string
   type: string
   host: string
   port: number
+  domain?: string  // e.g., 'local' - added for robust broker matching
   discovered?: boolean
   resolved?: boolean
   txtRecord?: Record<string, any>
