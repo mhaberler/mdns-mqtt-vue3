@@ -1,5 +1,5 @@
 <template>
-  <div class="mx-auto max-w-4xl w-full min-h-screen p-4 md:p-6 bg-gray-50">
+  <div class="w-full min-h-screen p-4 md:p-6 bg-gray-50">
     <div class="mb-6 p-5 md:p-6 bg-white rounded-xl shadow-sm border border-gray-100">
       <h1 class="text-2xl font-bold text-gray-800 mb-6">MQTT/MQTT-WS mDNS Scanner</h1>
       <div class="flex flex-wrap gap-3">
