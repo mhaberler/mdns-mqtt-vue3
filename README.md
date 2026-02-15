@@ -31,16 +31,16 @@ A cross-platform mobile application built with Vue 3 and Capacitor for discoveri
 
 ```bash
 # Install dependencies
-npm install
+bun install
 
 # Start development server
-npm run dev
+bun run dev
 
 # Build for production
-npm run build
+bun run build
 
 # Sync with Capacitor platforms
-npm run sync
+bun run sync
 ```
 
 ### Mobile Development
@@ -51,14 +51,14 @@ npx cap add android
 npx cap add ios
 
 # Run on Android
-npm run android
+bun run android
 
 # Run on iOS
-npm run ios
+bun run ios
 
 # Open in native IDEs
-npm run open:android
-npm run open:ios
+bun run open:android
+bun run open:ios
 ```
 
 ## Usage
@@ -108,13 +108,13 @@ src/
 
 ```bash
 # Build web assets
-npm run build
+bun run build
 
 # Sync with mobile platforms
-npm run sync
+bun run sync
 
 # Generate signed APK/IPA through native IDEs
-npm run open:android  # or open:ios
+bun run open:android  # or open:ios
 ```
 
 ## Contributing
