@@ -28,5 +28,23 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ['buffer', 'process']
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('mqtt')) {
+              return 'vendor-mqtt'
+            }
+            if (id.includes('vue')) {
+              return 'vendor-vue'
+            }
+            return 'vendor'
+          }
+        }
+      }
+    },
+    chunkSizeWarningLimit: 600
   }
 })
