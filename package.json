@@ -4,12 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "config": {
-    "host": "172.16.0.212",
     "port": "8102"
   },
   "scripts": {
     "clean": "bunx rimraf ./dist",
     "watch": "vue-tsc --watch",
+    "typecheck": "vue-tsc --noEmit",
     "dev": "vite --port=$npm_package_config_port --host",
     "build": "vite build",
     "preview": "vite preview",
@@ -18,10 +18,10 @@
     "sync": "npx cap sync",
     "open:android": "npx cap open android",
     "open:ios": "npx cap open ios",
-    "debug-android-s24": "bunx cap run android  --live-reload --host $npm_package_config_host --port $npm_package_config_port  --target R3CX90A30EW",
-    "debug-android-s10": "bunx cap run android  --live-reload --host $npm_package_config_host --port $npm_package_config_port  --target RF8MC11LGDW",
-    "debug-android-a15": "bunx cap run android  --live-reload --host $npm_package_config_host --port $npm_package_config_port  --target RF8Y109W1JB",
-    "debug-ios": "export PATH=\"/opt/homebrew/opt/ruby/bin:$PATH\" &&  bunx cap run ios --live-reload --host  $npm_package_config_host --port $npm_package_config_port  --target 00008140-0002692C1E79801C",
+    "debug-android-s24": "bunx cap run android  --live-reload  --port $npm_package_config_port --target R3CX90A30EW",
+    "debug-android-s10": "bunx cap run android  --live-reload --port $npm_package_config_port  --target RF8MC11LGDW",
+    "debug-android-a15": "bunx cap run android  --live-reload --port $npm_package_config_port  --target RF8Y109W1JB",
+    "debug-ios": "export PATH=\"/opt/homebrew/opt/ruby/bin:$PATH\" &&  bunx cap run ios --live-reload  --port $npm_package_config_port  --target 00008140-0002692C1E79801C",
     "ios-log": "idevicesyslog",
     "logcat:all": "adb logcat",
     "logcat:clear": "adb logcat -c",
@@ -39,23 +39,23 @@
     "run-on-ipad": "bunx cap run ios --target 7469941401580df80750b83afac3dec9bde0309a"
   },
   "dependencies": {
-    "@capacitor/android": "^7.4.2",
-    "@capacitor/cli": "^7.4.2",
-    "@capacitor/core": "^7.4.2",
-    "@capacitor/ios": "^7.4.2",
+    "@capacitor/android": "^7.5.0",
+    "@capacitor/cli": "^7.5.0",
+    "@capacitor/core": "^7.5.0",
+    "@capacitor/ios": "^7.5.0",
     "@mhaberler/capacitor-zeroconf-nsd": "^5.0.3",
     "buffer": "^6.0.3",
     "crypto-browserify": "^3.12.1",
     "events": "^3.3.0",
-    "mqtt": "^5.14.0",
+    "mqtt": "^5.15.0",
     "process": "^0.11.10",
     "stream": "^0.0.3",
-    "vue": "^3.5.18",
-    "vue-router": "^4.5.1",
-    "vue-tsc": "^3.0.5"
+    "vue": "^3.5.28",
+    "vue-router": "^5.0.2"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^6.0.1",
-    "vite": "^7.0.6"
+    "@vitejs/plugin-vue": "^6.0.4",
+    "vue-tsc": "^3.2.4",
+    "vite": "^7.3.1"
   }
 }

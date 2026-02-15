@@ -64,53 +64,47 @@
   </div>
 </template>
 
-<script>
-import { ref, onMounted, onUnmounted } from 'vue'
+<script lang="ts">
+import { defineComponent, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Capacitor } from '@capacitor/core'
-import { ZeroConf } from '@mhaberler/capacitor-zeroconf-nsd'
+import { ZeroConf, type ZeroConfService, type ZeroConfAction } from '@mhaberler/capacitor-zeroconf-nsd'
 
-function removeLeadingAndTrailingDots(str) {
-  // The regular expression to match leading or trailing dots
-  // ^\.* -> Matches zero or more dots at the beginning of the string
-  // |      -> OR
-  // \.*$   -> Matches zero or more dots at the end of the string
-  return str.replace(/^\.+|\.+$/g, '');
+function removeLeadingAndTrailingDots(str: string): string {
+  return str.replace(/^\.+|\.+$/g, '')
 }
 
-export default {
+type ServiceEntry = {
+  name: string
+  type: string
+  host: string
+  port: number
+  discovered?: boolean
+  resolved?: boolean
+  txtRecord?: Record<string, any>
+  ipv4Addresses?: string[]
+  ipv6Addresses?: string[]
+}
+
+export default defineComponent({
   name: 'ScannerView',
   setup() {
     const router = useRouter()
-    const services = ref({})
-    const manualHost = ref('')
-    const manualPort = ref(1883)
-    const selectedType = ref('_mqtt._tcp')
-    const isScanning = ref(false)
-    const isCapacitorApp = ref(Capacitor.isNativePlatform())
-    const scanError = ref('')
+    const services = ref<Record<string, ServiceEntry>>({})
+    const manualHost = ref<string>('')
+    const manualPort = ref<number>(1883)
+    const selectedType = ref<string>('_mqtt._tcp')
+    const isScanning = ref<boolean>(false)
+    const isCapacitorApp = ref<boolean>(Capacitor.isNativePlatform())
+    const scanError = ref<string>('')
 
     // Service types to scan for
-    const serviceTypes = [
-      // '_mqtt._tcp.',
+    const serviceTypes: string[] = [
       '_mqtt-ws._tcp.',
-      // '_mqtts._tcp.',
       '_mqtt-wss._tcp.'
     ]
-    // test.mosquitto.org
-    // 1883 : MQTT, unencrypted, unauthenticated
-    // 1884 : MQTT, unencrypted, authenticated
-    // 8883 : MQTT, encrypted, unauthenticated
-    // 8884 : MQTT, encrypted, client certificate required
-    // 8885 : MQTT, encrypted, authenticated
-    // 8886 : MQTT, encrypted, unauthenticated
-    // 8887 : MQTT, encrypted, server certificate deliberately expired
-    // 8080 : MQTT over WebSockets, unencrypted, unauthenticated
-    // 8081 : MQTT over WebSockets, encrypted, unauthenticated
-    // 8090 : MQTT over WebSockets, unencrypted, authenticated
-    // 8091 : MQTT over WebSockets, encrypted, authenticated
-    // Add some default services for testing
-    const defaultServices = {
+
+    const defaultServices: Record<string, any> = {
       'test-mosquitto-wss': {
         name: 'test.mosquitto.org (WSS)',
         type: '_mqtt-wss._tcp.',
@@ -120,7 +114,7 @@ export default {
         resolved: true
       }
     }
-    // Only add insecure WebSocket service when not on web platform
+
     if (isCapacitorApp.value) {
       defaultServices['test-mosquitto-ws'] = {
         name: 'test.mosquitto.org (WS)',
@@ -141,63 +135,54 @@ export default {
           name: `Manual MQTT (${manualHost.value}:${manualPort.value})`,
           type: selectedType.value,
           host: manualHost.value,
-          port: parseInt(manualPort.value)
+          port: parseInt(String(manualPort.value))
         }
         manualHost.value = ''
         manualPort.value = 1883
       }
     }
 
-    const removeService = (key) => {
+    const removeService = (key: string) => {
       delete services.value[key]
     }
 
-    const handleServicePress = (service) => {
-      // Use query parameters instead of route params for complex objects
+    const handleServicePress = (service: ServiceEntry) => {
       router.push({
         name: 'MQTTClient',
         query: {
           name: service.name,
           type: service.type,
           host: service.host,
-          port: service.port.toString(),
+          port: String(service.port),
           discovered: service.discovered ? 'true' : 'false',
           txtRecord: service.txtRecord ? JSON.stringify(service.txtRecord) : undefined
         }
       })
     }
 
-    const onServiceEvent = (arg) => {
-      if (!arg)
-        return;
-      const { action, service } = arg;
-      const st = removeLeadingAndTrailingDots(service.type)
-      const key = `${service.name}_${service.domain}_${st}`
+    const onServiceEvent = (arg: { action: ZeroConfAction; service: ZeroConfService } | null) => {
+      if (!arg) return
+      const { action, service } = arg
+      const st = removeLeadingAndTrailingDots(service.type || '')
+      const key = `${service.name || 'unknown'}_${service.domain || 'local'}_${st}`
       console.log(`onServiceEvent: ${action}, "${key}", ${JSON.stringify(service, null, 2)}`)
 
       if (action === 'added') {
-        // Insert a basic service object when service is first discovered
         services.value[key] = {
-          name: service.name || `${service.type} Service`,
-          type: service.type,
+          name: service.name || `${service.type ?? 'service'} Service`,
+          type: service.type || '',
           host: service.hostname || service.ipv4Addresses?.[0] || service.ipv6Addresses?.[0] || 'Unknown',
           port: service.port || 0,
           discovered: true,
           resolved: false
         }
       } else if (action === 'removed') {
-        // Delete the service object when it's no longer available
         if (services.value[key]) {
-          console.log("remove: key found:", key, services.value[key].discovered)
           if (services.value[key].discovered) {
             delete services.value[key]
           }
-        } else {
-          console.log("remove: key not found:", key)
         }
-
       } else if (action === 'resolved' && service.port) {
-        // Enhance the existing service object with resolved details
         if (services.value[key]) {
           services.value[key] = {
             ...services.value[key],
@@ -205,7 +190,6 @@ export default {
             host: service.hostname || service.ipv4Addresses?.[0] || service.ipv6Addresses?.[0] || services.value[key].host,
             port: service.port || services.value[key].port,
             resolved: true,
-            // Add any additional resolved fields
             txtRecord: service.txtRecord || {},
             ipv4Addresses: service.ipv4Addresses || [],
             ipv6Addresses: service.ipv6Addresses || []
@@ -224,17 +208,15 @@ export default {
         isScanning.value = true
         scanError.value = ''
 
-        // Start scanning for each service type with callbacks
         for (const serviceType of serviceTypes) {
           await ZeroConf.watch({
             type: serviceType,
-            domain: 'local.',
-            // addressFamily: 'ipv4'
+            domain: 'local.'
           }, onServiceEvent)
         }
 
         console.log('Started mDNS scanning for MQTT services')
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error starting mDNS scan:', error)
         scanError.value = `Failed to start scan: ${error.message || 'Unknown error'}`
         isScanning.value = false
@@ -254,7 +236,6 @@ export default {
         isScanning.value = false
         scanError.value = ''
 
-        // Remove discovered services
         Object.keys(services.value).forEach(key => {
           if (services.value[key].discovered) {
             delete services.value[key]
@@ -262,7 +243,7 @@ export default {
         })
 
         console.log('Stopped mDNS scanning')
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error stopping mDNS scan:', error)
         scanError.value = `Failed to stop scan: ${error.message || 'Unknown error'}`
       }
@@ -276,7 +257,6 @@ export default {
       }
     }
 
-    // Cleanup on component unmount
     onUnmounted(() => {
       if (isScanning.value) {
         stopScan()
@@ -297,7 +277,7 @@ export default {
       toggleScan
     }
   }
-}
+})
 </script>
 
 <style scoped>

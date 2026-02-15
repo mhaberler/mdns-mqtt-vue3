@@ -1,0 +1,27 @@
+name: Type-check
+
+on:
+  push:
+    branches:
+      - main
+      - 'types*'
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  typecheck:
+    name: Vue + TypeScript type-check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies (bun)
+        run: bun install
+
+      - name: Run type-check (vue-tsc)
+        run: bun run typecheck
