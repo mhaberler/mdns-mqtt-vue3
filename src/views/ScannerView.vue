@@ -86,22 +86,35 @@
       </div>
 
       <div v-for="(service, key) in services" :key="key"
-        class="group relative bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:border-primary/20 hover:shadow-md transition-all cursor-pointer"
+        class="group relative bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:border-primary/20 hover:shadow-md transition-all"
         :class="{
           'border-l-4 border-l-primary': service.discovered,
-          'preferred-broker-card': preferredBrokerService && service.name === preferredBrokerService.name && service.type === preferredBrokerService.type
+          'preferred-broker-card': preferredBrokerService && service.name === preferredBrokerService.name && service.type === preferredBrokerService.type,
+          'cursor-pointer': !(preferredBrokerService && service.name === preferredBrokerService.name && service.type === preferredBrokerService.type)
         }"
-        @click="handleServicePress(service)">
+        @click="(preferredBrokerService && service.name === preferredBrokerService.name && service.type === preferredBrokerService.type) ? null : handleServicePress(service)">
 
         <div class="flex justify-between items-start mb-3">
           <h3 class="font-bold text-lg text-gray-800">{{ service.name }}</h3>
           <div class="flex gap-2">
-            <button @click.stop="setPreferred(service)" class="opacity-0 group-hover:opacity-100 w-7 h-7 btn-primary rounded-full flex items-center justify-center shadow-lg hover:opacity-100 transition-all text-xs">
-              ★
+            <button
+              v-if="preferredBrokerService && service.name === preferredBrokerService.name && service.type === preferredBrokerService.type"
+              @click.stop="setPreferred(service)"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm transition-all"
+              style="background-color: #FFD700; color: #1a1a1a;">
+              <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+              </svg>
+              Default
             </button>
-            <button @click.stop="removeService(key)"
-              class="opacity-0 group-hover:opacity-100 w-7 h-7 btn-danger rounded-full flex items-center justify-center shadow-lg hover:opacity-100 transition-all">
-              ×
+            <button
+              v-else
+              @click.stop="setPreferred(service)"
+              class="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-full text-xs font-semibold shadow-sm transition-all active:scale-95">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
+              </svg>
+              Prefer
             </button>
           </div>
         </div>
@@ -119,7 +132,13 @@
           </span>
           <span v-else class="text-xs font-semibold text-gray-400">Manual</span>
 
-          <span class="text-xs font-bold text-success bg-success/10 px-2 py-1 rounded">
+          <button
+            v-if="preferredBrokerService && service.name === preferredBrokerService.name && service.type === preferredBrokerService.type"
+            @click.stop="handleServicePress(service)"
+            class="text-xs font-bold text-white bg-success hover:bg-success/90 px-3 py-1.5 rounded shadow-sm transition-colors active:scale-95">
+            CONNECT →
+          </button>
+          <span v-else class="text-xs font-bold text-success bg-success/10 px-2 py-1 rounded">
             TAP TO CONNECT →
           </span>
         </div>
@@ -241,10 +260,6 @@ export default defineComponent({
         manualHost.value = ''
         manualPort.value = 1883
       }
-    }
-
-    const removeService = (key: string) => {
-      delete services.value[key]
     }
 
     const handleServicePress = (service: ServiceEntry) => {
@@ -505,7 +520,6 @@ export default defineComponent({
       preferredBrokerService,
       isAutoConnecting,
       addManualService,
-      removeService,
       handleServicePress,
       toggleScan,
       setPreferred,

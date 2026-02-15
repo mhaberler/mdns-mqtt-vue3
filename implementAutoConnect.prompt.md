@@ -11,10 +11,11 @@ Review the provided requirements or specification and implement a comprehensive 
 ## Core Functionality
 
 1. **Preferred Selection**
-   - Add UI to mark one item as "preferred" from a list of available options
+   - Add always-visible button to mark one item as "preferred" from a list of available options
+   - Button text: "Prefer" for non-preferred items, "Default" to unset preferred status
    - Store preferred selection persistently (localStorage or equivalent)
    - Only allow one preferred item at a time
-   - Provide clear visual indication of which item is preferred
+   - Provide clear visual indication of which item is preferred (e.g., gold border/highlight)
 
 2. **Persistent Toggles**
    - Implement toggle controls (e.g., "Auto Scan", "Auto Connect") with persistent state
@@ -33,6 +34,8 @@ Review the provided requirements or specification and implement a comprehensive 
    - Add visual highlighting (e.g., colored border/outline) to preferred item in lists
    - Use color coding for different states (green=found, orange=searching, red=not found)
    - Include loading/connecting states with appropriate animations
+   - For preferred item: show explicit action button (e.g., "CONNECT") instead of making entire card clickable
+   - For non-preferred items: allow click-anywhere or explicit button based on UX needs
 
 5. **Automatic Navigation & Connection**
    - Automatically navigate to detail/connection view when conditions are met
@@ -53,6 +56,9 @@ Review the provided requirements or specification and implement a comprehensive 
 - Include documentation comments explaining edge cases
 - Test all toggle combinations and state transitions
 - Ensure responsive design for mobile and desktop
+- Use clear, action-oriented button labels ("Prefer", "Default", "Connect")
+- Distinguish button states visually (e.g., gold for selected, blue for available)
+- Prevent accidental actions by requiring explicit button clicks for important operations
 
 ## Expected Deliverables
 
