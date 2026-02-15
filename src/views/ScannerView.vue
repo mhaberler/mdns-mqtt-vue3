@@ -2,6 +2,19 @@
   <div class="w-full min-h-screen p-4 md:p-6 bg-gray-50">
     <div class="mb-6 p-5 md:p-6 bg-white rounded-xl shadow-sm border border-gray-100">
       <h1 class="text-2xl font-bold text-gray-800 mb-6">MQTT/MQTT-WS mDNS Scanner</h1>
+      <div class="flex items-center gap-4 mb-4">
+        <label class="flex items-center gap-2">
+          <input type="checkbox" v-model="autoScanEnabled" class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+          <span class="text-sm font-medium text-gray-700">Auto Scan</span>
+        </label>
+        <button @click="handleAutoConnect" :disabled="!preferredBroker" class="btn btn-secondary" :class="{ 'opacity-50 cursor-not-allowed': !preferredBroker }">
+          Auto Connect
+        </button>
+      </div>
+      <div v-if="preferredBroker" class="mb-4 p-3 bg-blue-50 text-blue-700 rounded-lg text-sm border border-blue-100">
+        <p><strong>Preferred Broker:</strong> {{ preferredBroker.name }}</p>
+        <button @click="clearPreferredBroker" class="mt-2 text-xs underline">Clear</button>
+      </div>
       <div class="flex flex-wrap gap-3">
         <input v-model="manualHost" placeholder="Enter MQTT broker IP" class="flex-1 min-w-[200px] px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary outline-none">
         <input v-model="manualPort" placeholder="Port (1883)" type="number" class="w-24 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary outline-none">
@@ -45,10 +58,15 @@
 
         <div class="flex justify-between items-start mb-3">
           <h3 class="font-bold text-lg text-gray-800">{{ service.name }}</h3>
-          <button @click.stop="removeService(key)"
-            class="opacity-0 group-hover:opacity-100 absolute -top-2 -right-2 w-7 h-7 btn-danger rounded-full flex items-center justify-center shadow-lg hover:opacity-100 transition-all">
-            ×
-          </button>
+          <div class="flex gap-2">
+            <button @click.stop="setPreferred(service)" class="opacity-0 group-hover:opacity-100 w-7 h-7 btn-primary rounded-full flex items-center justify-center shadow-lg hover:opacity-100 transition-all text-xs">
+              ★
+            </button>
+            <button @click.stop="removeService(key)"
+              class="opacity-0 group-hover:opacity-100 w-7 h-7 btn-danger rounded-full flex items-center justify-center shadow-lg hover:opacity-100 transition-all">
+              ×
+            </button>
+          </div>
         </div>
 
         <div class="space-y-1 text-sm text-gray-600">
@@ -78,10 +96,11 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onUnmounted } from 'vue'
+import { defineComponent, ref, onUnmounted, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { Capacitor } from '@capacitor/core'
 import { ZeroConf, type ZeroConfService, type ZeroConfAction } from '@mhaberler/capacitor-zeroconf-nsd'
+import { getPreferredBroker, setPreferredBroker, getAutoScanEnabled, setAutoScanEnabled } from '../utils/storage'
 
 function removeLeadingAndTrailingDots(str: string): string {
   return str.replace(/^\.+|\.+$/g, '')
@@ -110,6 +129,11 @@ export default defineComponent({
     const isScanning = ref<boolean>(false)
     const isCapacitorApp = ref<boolean>(Capacitor.isNativePlatform())
     const scanError = ref<string>('')
+
+    const autoScanEnabled = ref<boolean>(getAutoScanEnabled())
+    const preferredBroker = ref<ServiceEntry | null>(getPreferredBroker())
+
+    watch(autoScanEnabled, (newVal) => setAutoScanEnabled(newVal))
 
     // Service types to scan for
     const serviceTypes: string[] = [
@@ -270,9 +294,44 @@ export default defineComponent({
       }
     }
 
-    onUnmounted(() => {
-      if (isScanning.value) {
-        stopScan()
+    const setPreferred = (service: ServiceEntry) => {
+      preferredBroker.value = service
+      setPreferredBroker(service)
+    }
+
+    const clearPreferredBroker = () => {
+      preferredBroker.value = null
+      setPreferredBroker(null)
+    }
+
+    const handleAutoConnect = async () => {
+      if (!preferredBroker.value) return
+
+      const found = Object.values(services.value).find(s => s.name === preferredBroker.value!.name && s.type === preferredBroker.value!.type)
+      if (found) {
+        handleServicePress(found)
+        return
+      }
+
+      // Start scan if not scanning
+      if (!isScanning.value && isCapacitorApp.value) {
+        await startScan()
+      }
+
+      // Wait for scan results
+      await new Promise(resolve => setTimeout(resolve, 5000))
+
+      const foundAfterScan = Object.values(services.value).find(s => s.name === preferredBroker.value!.name && s.type === preferredBroker.value!.type)
+      if (foundAfterScan) {
+        handleServicePress(foundAfterScan)
+      } else {
+        scanError.value = 'Preferred broker not found after scanning.'
+      }
+    }
+
+    onMounted(() => {
+      if (autoScanEnabled.value && isCapacitorApp.value) {
+        startScan()
       }
     })
 
@@ -284,10 +343,15 @@ export default defineComponent({
       isScanning,
       isCapacitorApp,
       scanError,
+      autoScanEnabled,
+      preferredBroker,
       addManualService,
       removeService,
       handleServicePress,
-      toggleScan
+      toggleScan,
+      setPreferred,
+      clearPreferredBroker,
+      handleAutoConnect
     }
   }
 })
