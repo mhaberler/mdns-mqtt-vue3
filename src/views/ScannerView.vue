@@ -68,17 +68,29 @@
 import { defineComponent, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Capacitor } from '@capacitor/core'
-import { ZeroConf } from '@mhaberler/capacitor-zeroconf-nsd'
+import { ZeroConf, type ZeroConfService, type ZeroConfAction } from '@mhaberler/capacitor-zeroconf-nsd'
 
 function removeLeadingAndTrailingDots(str: string): string {
   return str.replace(/^\.+|\.+$/g, '')
+}
+
+type ServiceEntry = {
+  name: string
+  type: string
+  host: string
+  port: number
+  discovered?: boolean
+  resolved?: boolean
+  txtRecord?: Record<string, any>
+  ipv4Addresses?: string[]
+  ipv6Addresses?: string[]
 }
 
 export default defineComponent({
   name: 'ScannerView',
   setup() {
     const router = useRouter()
-    const services = ref<Record<string, any>>({})
+    const services = ref<Record<string, ServiceEntry>>({})
     const manualHost = ref<string>('')
     const manualPort = ref<number>(1883)
     const selectedType = ref<string>('_mqtt._tcp')
@@ -134,7 +146,7 @@ export default defineComponent({
       delete services.value[key]
     }
 
-    const handleServicePress = (service: any) => {
+    const handleServicePress = (service: ServiceEntry) => {
       router.push({
         name: 'MQTTClient',
         query: {
@@ -148,17 +160,17 @@ export default defineComponent({
       })
     }
 
-    const onServiceEvent = (arg: any) => {
+    const onServiceEvent = (arg: { action: ZeroConfAction; service: ZeroConfService } | null) => {
       if (!arg) return
       const { action, service } = arg
-      const st = removeLeadingAndTrailingDots(service.type)
-      const key = `${service.name}_${service.domain}_${st}`
+      const st = removeLeadingAndTrailingDots(service.type || '')
+      const key = `${service.name || 'unknown'}_${service.domain || 'local'}_${st}`
       console.log(`onServiceEvent: ${action}, "${key}", ${JSON.stringify(service, null, 2)}`)
 
       if (action === 'added') {
         services.value[key] = {
-          name: service.name || `${service.type} Service`,
-          type: service.type,
+          name: service.name || `${service.type ?? 'service'} Service`,
+          type: service.type || '',
           host: service.hostname || service.ipv4Addresses?.[0] || service.ipv6Addresses?.[0] || 'Unknown',
           port: service.port || 0,
           discovered: true,
