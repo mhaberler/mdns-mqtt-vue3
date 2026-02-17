@@ -120,7 +120,7 @@ export default defineComponent({
     const router = useRouter()
 
     // Access shared app state
-    const { autoConnectEnabledRef } = useAppState()
+    const { preferredBrokerRef } = useAppState()
 
     const service: ServiceInfo = {
       name: (route.query.name as string) || 'Unknown Service',
@@ -279,7 +279,9 @@ export default defineComponent({
 
     const goBack = () => {
       // Disable auto-connect to prevent immediate reconnection
-      autoConnectEnabledRef.value = false
+      if (preferredBrokerRef.value) {
+        preferredBrokerRef.value.autoConnect = false
+      }
       router.back()
     }
 

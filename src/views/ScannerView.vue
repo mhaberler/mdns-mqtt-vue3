@@ -3,10 +3,6 @@
     <div class="mb-6 p-5 md:p-6 bg-white rounded-xl shadow-sm border border-gray-100">
       <h1 class="text-2xl font-bold text-gray-800 mb-6">MQTT/MQTT-WS mDNS Scanner</h1>
       <div class="flex items-center gap-4 mb-4 flex-wrap">
-        <label class="flex items-center gap-2" :class="{ 'opacity-50 cursor-not-allowed': !preferredBroker }">
-          <input type="checkbox" v-model="autoConnectEnabled" :disabled="!preferredBroker" class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
-          <span class="text-sm font-medium text-gray-700">Auto Connect</span>
-        </label>
         <button
           v-if="isCapacitorApp"
           @click="toggleScan"
@@ -52,6 +48,10 @@
                 </div>
               </div>
             </div>
+            <label class="flex items-center gap-2 mt-3">
+              <input type="checkbox" v-model="preferredBroker.autoConnect" class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+              <span class="text-sm font-medium text-gray-700">Auto Connect</span>
+            </label>
           </div>
           <div class="flex gap-2 flex-shrink-0 self-start md:self-center">
             <button @click="handleServicePress(preferredBroker)" class="btn btn-success text-sm font-semibold shadow-sm">
@@ -209,11 +209,10 @@ export default defineComponent({
     let hasTriggeredStartupScan = false
 
     // App-level persisted state (shared across components)
-    const { preferredBrokerRef, autoConnectEnabledRef } = useAppState()
+    const { preferredBrokerRef } = useAppState()
 
     // Aliases for template compatibility
     const preferredBroker = preferredBrokerRef
-    const autoConnectEnabled = autoConnectEnabledRef
     const isAutoConnecting = ref<boolean>(false)
 
     // Service types to scan for
@@ -550,7 +549,7 @@ export default defineComponent({
     // Watch for preferred broker being found and auto-connect if enabled
     watch(preferredBrokerStatus, (newStatus) => {
       // Auto-connect for both 'found' (mDNS) and 'manual' brokers
-      if ((newStatus === 'found' || newStatus === 'manual') && autoConnectEnabled.value && !isAutoConnecting.value) {
+      if ((newStatus === 'found' || newStatus === 'manual') && preferredBroker.value?.autoConnect && !isAutoConnecting.value) {
         const brokerToConnect = newStatus === 'found' ? preferredBrokerService.value : preferredBroker.value
         if (brokerToConnect) {
           handleServicePress(brokerToConnect)
@@ -575,7 +574,6 @@ export default defineComponent({
       isCapacitorApp,
       scanError,
       scanTimeRemaining,
-      autoConnectEnabled,
       preferredBroker,
       preferredBrokerStatus,
       preferredBrokerService,

@@ -19,6 +19,7 @@ export type ServiceEntry = {
   txtRecord?: Record<string, any>
   ipv4Addresses?: string[]
   ipv6Addresses?: string[]
+  autoConnect?: boolean  // Auto-connect to this broker when preferred and status is found/manual
 }
 
 /**
@@ -29,7 +30,6 @@ export type ServiceEntry = {
 
 // Create persisted refs at module scope (shared singleton pattern)
 const preferredBrokerRef = usePersistedRef<ServiceEntry | null>('preferredBroker', null)
-const autoConnectEnabledRef = usePersistedRef<boolean>('autoConnectEnabled', false)
 
 /**
  * Returns shared app-level state refs.
@@ -37,7 +37,6 @@ const autoConnectEnabledRef = usePersistedRef<boolean>('autoConnectEnabled', fal
  */
 export function useAppState() {
   return {
-    preferredBrokerRef,
-    autoConnectEnabledRef
+    preferredBrokerRef
   }
 }
