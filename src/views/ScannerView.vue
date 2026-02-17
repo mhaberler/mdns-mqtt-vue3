@@ -200,6 +200,8 @@ export default defineComponent({
     // App-level persisted state (shared across components)
     const { preferredBrokerRef, autoScanEnabledRef, autoConnectEnabledRef } = useAppState()
 
+    console.log("ScannerView initialized. Preferred broker:", JSON.stringify(preferredBrokerRef.value, null, 2));
+
     // Aliases for template compatibility
     const preferredBroker = preferredBrokerRef
     const autoScanEnabled = autoScanEnabledRef
