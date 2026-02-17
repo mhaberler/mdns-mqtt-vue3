@@ -100,7 +100,7 @@
 import { defineComponent, ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import mqtt, { MqttClient } from 'mqtt'
-import { setAutoConnectEnabled } from '../utils/storage'
+import { useAppState } from '../composables/useAppState'
 
 type MessageItem = { id: string; topic: string; payload: string; timestamp: string }
 
@@ -118,6 +118,9 @@ export default defineComponent({
   setup() {
     const route = useRoute()
     const router = useRouter()
+
+    // Access shared app state
+    const { autoConnectEnabledRef } = useAppState()
 
     const service: ServiceInfo = {
       name: (route.query.name as string) || 'Unknown Service',
@@ -266,7 +269,7 @@ export default defineComponent({
         timestamp
       }
 
-      messages.value = [newMessage, ...messages.value].slice(0, 500)
+      messages.value = [newMessage, ...messages.value].slice(0, 10)
     }
 
     const clearMessages = () => {
@@ -275,7 +278,7 @@ export default defineComponent({
 
     const goBack = () => {
       // Disable auto-connect to prevent immediate reconnection
-      setAutoConnectEnabled(false)
+      autoConnectEnabledRef.value = false
       router.back()
     }
 

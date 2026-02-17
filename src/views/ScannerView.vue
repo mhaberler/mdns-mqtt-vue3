@@ -152,27 +152,14 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onUnmounted, onMounted, watch, computed } from 'vue'
+import { defineComponent, ref, onUnmounted, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Capacitor } from '@capacitor/core'
 import { ZeroConf, type ZeroConfService, type ZeroConfAction } from '@mhaberler/capacitor-zeroconf-nsd'
-import { getPreferredBroker, setPreferredBroker, getAutoScanEnabled, setAutoScanEnabled, getAutoConnectEnabled, setAutoConnectEnabled } from '../utils/storage'
+import { useAppState, type ServiceEntry } from '../composables/useAppState'
 
 function removeLeadingAndTrailingDots(str: string): string {
   return str.replace(/^\.+|\.+$/g, '')
-}
-
-type ServiceEntry = {
-  name: string
-  type: string
-  host: string
-  port: number
-  domain?: string
-  discovered?: boolean
-  resolved?: boolean
-  txtRecord?: Record<string, any>
-  ipv4Addresses?: string[]
-  ipv6Addresses?: string[]
 }
 
 type BrokerMatchStatus = 'exact' | 'fuzzy' | 'manual' | 'not-found'
@@ -210,13 +197,14 @@ export default defineComponent({
     const isCapacitorApp = ref<boolean>(Capacitor.isNativePlatform())
     const scanError = ref<string>('')
 
-    const autoScanEnabled = ref<boolean>(getAutoScanEnabled())
-    const autoConnectEnabled = ref<boolean>(getAutoConnectEnabled())
-    const preferredBroker = ref<ServiceEntry | null>(getPreferredBroker())
-    const isAutoConnecting = ref<boolean>(false)
+    // App-level persisted state (shared across components)
+    const { preferredBrokerRef, autoScanEnabledRef, autoConnectEnabledRef } = useAppState()
 
-    watch(autoScanEnabled, (newVal) => setAutoScanEnabled(newVal))
-    watch(autoConnectEnabled, (newVal) => setAutoConnectEnabled(newVal))
+    // Aliases for template compatibility
+    const preferredBroker = preferredBrokerRef
+    const autoScanEnabled = autoScanEnabledRef
+    const autoConnectEnabled = autoConnectEnabledRef
+    const isAutoConnecting = ref<boolean>(false)
 
     // Service types to scan for
     const serviceTypes: string[] = [
@@ -406,13 +394,11 @@ export default defineComponent({
     }
 
     const setPreferred = (service: ServiceEntry) => {
-      preferredBroker.value = service
-      setPreferredBroker(service)
+      preferredBrokerRef.value = service
     }
 
     const clearPreferredBroker = () => {
-      preferredBroker.value = null
-      setPreferredBroker(null)
+      preferredBrokerRef.value = null
     }
 
     /**
@@ -465,11 +451,12 @@ export default defineComponent({
       }
     }
 
-    onMounted(() => {
-      if (autoScanEnabled.value && isCapacitorApp.value) {
+    // Auto-scan when preference loads (handles async initialization)
+    watch(autoScanEnabledRef, (enabled) => {
+      if (enabled && isCapacitorApp.value && !isScanning.value) {
         startScan()
       }
-    })
+    }, { immediate: true })
 
     // Computed properties for reactive UI state
     const preferredBrokerMatchResult = computed<BrokerMatchResult>(() => findPreferredBroker())
