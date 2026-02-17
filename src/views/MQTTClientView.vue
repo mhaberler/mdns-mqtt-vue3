@@ -269,7 +269,7 @@ export default defineComponent({
         timestamp
       }
 
-      messages.value = [newMessage, ...messages.value].slice(0, 10)
+      messages.value = [newMessage, ...messages.value].slice(0, 5)
     }
 
     const clearMessages = () => {
@@ -292,6 +292,10 @@ export default defineComponent({
       disconnectClient()
     })
 
+    const scanTimeRemaining = ref<number>(0)
+    let scanTimer: NodeJS.Timeout | null = null
+    let hasTriggeredStartupScan = false  // ← ADD THIS LINE
+
     return {
       service,
       serviceName,
@@ -307,7 +311,10 @@ export default defineComponent({
       disconnectClient,
       publishMessageToTopic,
       clearMessages,
-      goBack
+      goBack,
+      scanTimeRemaining,
+      scanTimer,
+      hasTriggeredStartupScan
     }
   }
 })

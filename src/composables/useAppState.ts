@@ -29,7 +29,6 @@ export type ServiceEntry = {
 
 // Create persisted refs at module scope (shared singleton pattern)
 const preferredBrokerRef = usePersistedRef<ServiceEntry | null>('preferredBroker', null)
-const autoScanEnabledRef = usePersistedRef<boolean>('autoScanEnabled', false)
 const autoConnectEnabledRef = usePersistedRef<boolean>('autoConnectEnabled', false)
 
 /**
@@ -39,7 +38,6 @@ const autoConnectEnabledRef = usePersistedRef<boolean>('autoConnectEnabled', fal
 export function useAppState() {
   return {
     preferredBrokerRef,
-    autoScanEnabledRef,
     autoConnectEnabledRef
   }
 }

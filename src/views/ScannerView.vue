@@ -3,14 +3,19 @@
     <div class="mb-6 p-5 md:p-6 bg-white rounded-xl shadow-sm border border-gray-100">
       <h1 class="text-2xl font-bold text-gray-800 mb-6">MQTT/MQTT-WS mDNS Scanner</h1>
       <div class="flex items-center gap-4 mb-4 flex-wrap">
-        <label class="flex items-center gap-2">
-          <input type="checkbox" v-model="autoScanEnabled" class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
-          <span class="text-sm font-medium text-gray-700">Auto Scan</span>
-        </label>
         <label class="flex items-center gap-2" :class="{ 'opacity-50 cursor-not-allowed': !preferredBroker }">
           <input type="checkbox" v-model="autoConnectEnabled" :disabled="!preferredBroker" class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
           <span class="text-sm font-medium text-gray-700">Auto Connect</span>
         </label>
+        <button
+          v-if="isCapacitorApp"
+          @click="toggleScan"
+          :class="['btn', isScanning ? 'btn-danger' : 'btn-success']">
+          {{ isScanning ? (scanTimeRemaining > 0 ? `Stop Scan (${scanTimeRemaining}s)` : 'Stop Scan') : 'Start Scan (5s)' }}
+        </button>
+        <div v-if="!isCapacitorApp" class="text-xs text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200">
+          mDNS scanning requires native app
+        </div>
       </div>
       <div v-if="preferredBroker" class="mb-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200 shadow-sm">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -59,12 +64,6 @@
         <button @click="addManualService" class="btn btn-primary">
           Add
         </button>
-        <button @click="toggleScan" :class="['btn', isScanning ? 'btn-danger' : 'btn-success']" :disabled="!isCapacitorApp">
-          {{ isScanning ? 'Stop Scan' : 'Start Scan' }}
-        </button>
-      </div>
-      <div v-if="!isCapacitorApp" class="mt-4 p-3 bg-amber-50 text-amber-700 rounded-lg text-sm border border-amber-100">
-        <p>mDNS scanning is only available in the Capacitor app</p>
       </div>
       <div v-if="scanError" class="mt-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-100">
         <p>{{ scanError }}</p>
@@ -196,15 +195,14 @@ export default defineComponent({
     const isScanning = ref<boolean>(false)
     const isCapacitorApp = ref<boolean>(Capacitor.isNativePlatform())
     const scanError = ref<string>('')
+    const scanTimeRemaining = ref<number>(0)
+    let scanTimer: NodeJS.Timeout | null = null
 
     // App-level persisted state (shared across components)
-    const { preferredBrokerRef, autoScanEnabledRef, autoConnectEnabledRef } = useAppState()
-
-    console.log("ScannerView initialized. Preferred broker:", JSON.stringify(preferredBrokerRef.value, null, 2));
+    const { preferredBrokerRef, autoConnectEnabledRef } = useAppState()
 
     // Aliases for template compatibility
     const preferredBroker = preferredBrokerRef
-    const autoScanEnabled = autoScanEnabledRef
     const autoConnectEnabled = autoConnectEnabledRef
     const isAutoConnecting = ref<boolean>(false)
 
@@ -315,6 +313,7 @@ export default defineComponent({
       try {
         isScanning.value = true
         scanError.value = ''
+        scanTimeRemaining.value = 5
 
         for (const serviceType of serviceTypes) {
           await ZeroConf.watch({
@@ -323,16 +322,32 @@ export default defineComponent({
           }, onServiceEvent)
         }
 
-        console.log('Started mDNS scanning for MQTT services')
+        // Start 5-second countdown timer
+        scanTimer = setInterval(() => {
+          scanTimeRemaining.value -= 1
+          if (scanTimeRemaining.value <= 0) {
+            stopScan()
+          }
+        }, 1000)
+
+        console.log('Started mDNS scanning for MQTT services (5s auto-stop)')
       } catch (error: any) {
         console.error('Error starting mDNS scan:', error)
         scanError.value = `Failed to start scan: ${error.message || 'Unknown error'}`
         isScanning.value = false
+        scanTimeRemaining.value = 0
       }
     }
 
     const stopScan = async () => {
       if (!isCapacitorApp.value) return
+
+      // Clear timer
+      if (scanTimer) {
+        clearInterval(scanTimer)
+        scanTimer = null
+      }
+      scanTimeRemaining.value = 0
 
       try {
         for (const serviceType of serviceTypes) {
@@ -344,11 +359,8 @@ export default defineComponent({
         isScanning.value = false
         scanError.value = ''
 
-        Object.keys(services.value).forEach(key => {
-          if (services.value[key].discovered) {
-            delete services.value[key]
-          }
-        })
+        // Keep discovered services visible after scan stops
+        // (Don't delete them - users can still connect to them)
 
         console.log('Stopped mDNS scanning')
       } catch (error: any) {
@@ -453,10 +465,15 @@ export default defineComponent({
       }
     }
 
-    // Auto-scan when preference loads (handles async initialization)
-    watch(autoScanEnabledRef, (enabled) => {
-      if (enabled && isCapacitorApp.value && !isScanning.value) {
-        startScan()
+    // Startup discovery: scan for preferred broker if it's not found
+    watch(preferredBrokerRef, (broker) => {
+      if (broker && broker.discovered !== false && isCapacitorApp.value && !isScanning.value) {
+        // Preferred broker exists and is a discovered (mDNS) broker - scan to find it
+        const matchResult = findPreferredBroker()
+        if (matchResult.status === 'not-found') {
+          console.log('Preferred broker not found, starting discovery scan...')
+          startScan()
+        }
       }
     }, { immediate: true })
 
@@ -486,11 +503,44 @@ export default defineComponent({
       return 'not-found'
     })
 
+    // Update preferred broker with fresh network info when discovered via mDNS
+    watch(preferredBrokerMatchResult, (result) => {
+      if (result.service && result.service.resolved && preferredBroker.value && result.service.discovered) {
+        const current = preferredBroker.value
+
+        // Only update if values actually changed (prevents infinite loop)
+        const hostsMatch = current.host === result.service.host
+        const ipv4Match = JSON.stringify(current.ipv4Addresses || []) === JSON.stringify(result.service.ipv4Addresses || [])
+        const ipv6Match = JSON.stringify(current.ipv6Addresses || []) === JSON.stringify(result.service.ipv6Addresses || [])
+        const alreadyResolved = current.resolved === true && current.discovered === true
+
+        if (!hostsMatch || !ipv4Match || !ipv6Match || !alreadyResolved) {
+          console.log('Updating preferred broker with fresh network info')
+          preferredBrokerRef.value = {
+            ...current,
+            host: result.service.host,
+            ipv4Addresses: result.service.ipv4Addresses,
+            ipv6Addresses: result.service.ipv6Addresses,
+            resolved: true,
+            discovered: true
+          }
+        }
+      }
+    })
+
     // Watch for preferred broker being found and auto-connect if enabled
     watch(preferredBrokerStatus, (newStatus) => {
       if (newStatus === 'found' && autoConnectEnabled.value && preferredBrokerService.value && !isAutoConnecting.value) {
         // Auto-connect when preferred broker is found and auto-connect is enabled
         handleServicePress(preferredBrokerService.value)
+      }
+    })
+
+    // Cleanup timer on component unmount
+    onUnmounted(() => {
+      if (scanTimer) {
+        clearInterval(scanTimer)
+        scanTimer = null
       }
     })
 
@@ -502,7 +552,7 @@ export default defineComponent({
       isScanning,
       isCapacitorApp,
       scanError,
-      autoScanEnabled,
+      scanTimeRemaining,
       autoConnectEnabled,
       preferredBroker,
       preferredBrokerStatus,
