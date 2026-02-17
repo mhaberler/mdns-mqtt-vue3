@@ -1,28 +1,40 @@
 PODS:
   - Capacitor (7.5.0):
     - CapacitorCordova
+  - CapacitorApp (7.1.2):
+    - Capacitor
   - CapacitorCordova (7.5.0)
+  - CapacitorPreferences (8.0.1):
+    - Capacitor
   - MhaberlerCapacitorZeroconfNsd (5.0.3):
     - Capacitor
 
 DEPENDENCIES:
   - "Capacitor (from `../../node_modules/@capacitor/ios`)"
+  - "CapacitorApp (from `../../node_modules/@capacitor/app`)"
   - "CapacitorCordova (from `../../node_modules/@capacitor/ios`)"
+  - "CapacitorPreferences (from `../../node_modules/@capacitor/preferences`)"
   - "MhaberlerCapacitorZeroconfNsd (from `../../node_modules/@mhaberler/capacitor-zeroconf-nsd`)"
 
 EXTERNAL SOURCES:
   Capacitor:
     :path: "../../node_modules/@capacitor/ios"
+  CapacitorApp:
+    :path: "../../node_modules/@capacitor/app"
   CapacitorCordova:
     :path: "../../node_modules/@capacitor/ios"
+  CapacitorPreferences:
+    :path: "../../node_modules/@capacitor/preferences"
   MhaberlerCapacitorZeroconfNsd:
     :path: "../../node_modules/@mhaberler/capacitor-zeroconf-nsd"
 
 SPEC CHECKSUMS:
   Capacitor: 0a78ec6b54580fa055c11744a4e83cd7942d98ca
+  CapacitorApp: f01a913211780e0718dae9750442c3e23f96e106
   CapacitorCordova: ae35646a9b46cfd00d637f195509c86594026aad
+  CapacitorPreferences: cca2021f386efb75947c850334447d9ff22b14f1
   MhaberlerCapacitorZeroconfNsd: 88705b7013c1f8da0cdc45b48323da4c54b91e78
 
-PODFILE CHECKSUM: e2d918f85ecbf642c1a3dcb72ec2e3bb7d1d5041
+PODFILE CHECKSUM: 5f2040d116a374a8b1e12db468c791d108e2fc9a
 
 COCOAPODS: 1.16.2

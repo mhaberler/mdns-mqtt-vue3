@@ -184,6 +184,7 @@ import { Capacitor } from '@capacitor/core'
 import { ZeroConf, type ZeroConfService, type ZeroConfAction } from '@mhaberler/capacitor-zeroconf-nsd'
 import { useAppState, type ServiceEntry, type BrokerSource } from '../composables/useAppState'
 import { useMqttConnection } from '../composables/useMqttConnection'
+import { useAppLifecycle } from '../composables/useAppLifecycle'
 
 function removeLeadingAndTrailingDots(str: string): string {
   return str.replace(/^\.+|\.+$/g, '')
@@ -542,6 +543,14 @@ export default defineComponent({
     // Cleanup on unmount
     onUnmounted(() => {
       if (scanTimer) { clearInterval(scanTimer); scanTimer = null }
+    })
+
+    // Stop mDNS scan when app goes to background
+    const { isActive } = useAppLifecycle()
+    watch(isActive, (active) => {
+      if (!active && isScanning.value) {
+        stopScan()
+      }
     })
 
     return {

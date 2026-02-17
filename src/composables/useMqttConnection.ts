@@ -49,6 +49,7 @@ const messages = ref<MessageItem[]>([])
 const connectedBroker = ref<ServiceEntry | null>(null)
 let mqttClient: MqttClient | null = null
 let connectionTimeout: ReturnType<typeof setTimeout> | null = null
+let suspendedBroker: ServiceEntry | null = null
 
 const MESSAGE_CAP = 10
 
@@ -175,7 +176,34 @@ function disconnect() {
   cleanup()
   connectionState.value = 'disconnected'
   connectedBroker.value = null
+  suspendedBroker = null // manual disconnect — no auto-resume
   addMessage('system', 'Disconnected from broker')
+}
+
+/**
+ * Gracefully pause the connection (app going to background).
+ * Preserves connectedBroker identity so UI still shows which broker was active.
+ */
+function pause() {
+  if (connectionState.value === 'disconnected' && !suspendedBroker) return
+  if (connectedBroker.value) {
+    suspendedBroker = { ...connectedBroker.value }
+  }
+  cleanup()
+  connectionState.value = 'disconnected'
+  addMessage('system', 'Paused (app backgrounded)')
+}
+
+/**
+ * Resume connection after returning to foreground.
+ * Only reconnects if pause() saved a broker and no manual disconnect occurred.
+ */
+function resume() {
+  if (!suspendedBroker || connectionState.value !== 'disconnected') return
+  const broker = suspendedBroker
+  suspendedBroker = null
+  addMessage('system', 'Resuming connection…')
+  connect(broker)
 }
 
 function publish(topic: string, payload: string): Promise<void> {
@@ -282,6 +310,8 @@ export function useMqttConnection() {
     // Actions
     connect,
     disconnect,
+    pause,
+    resume,
     publish,
     testConnect,
     clearMessages,
