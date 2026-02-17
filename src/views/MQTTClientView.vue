@@ -246,6 +246,7 @@ export default defineComponent({
       }
       connected.value = false
       addMessage('system', 'Disconnected from broker')
+      console.log('Disconnected from MQTT broker')
     }
 
     const publishMessageToTopic = () => {

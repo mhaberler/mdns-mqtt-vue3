@@ -11,7 +11,7 @@
           v-if="isCapacitorApp"
           @click="toggleScan"
           :class="['btn', isScanning ? 'btn-danger' : 'btn-success']">
-          {{ isScanning ? (scanTimeRemaining > 0 ? `Stop Scan (${scanTimeRemaining}s)` : 'Stop Scan') : 'Start Scan (5s)' }}
+          {{ isScanning ? (scanTimeRemaining > 0 ? `Stop Scan (${scanTimeRemaining}s)` : 'Stop Scan') : 'Discover (3s)' }}
         </button>
         <div v-if="!isCapacitorApp" class="text-xs text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200">
           mDNS scanning requires native app
@@ -53,9 +53,14 @@
               </div>
             </div>
           </div>
-          <button @click="clearPreferredBroker" class="btn bg-white hover:bg-red-50 text-red-600 border border-red-200 text-sm font-semibold shadow-sm flex-shrink-0 self-start md:self-center">
-            Clear
-          </button>
+          <div class="flex gap-2 flex-shrink-0 self-start md:self-center">
+            <button @click="handleServicePress(preferredBroker)" class="btn btn-success text-sm font-semibold shadow-sm">
+              Connect
+            </button>
+            <button @click="clearPreferredBroker" class="btn bg-white hover:bg-red-50 text-red-600 border border-red-200 text-sm font-semibold shadow-sm">
+              Clear
+            </button>
+          </div>
         </div>
       </div>
       <div class="flex flex-wrap gap-3">
@@ -195,7 +200,7 @@ export default defineComponent({
     const services = ref<Record<string, ServiceEntry>>({})
     const manualHost = ref<string>('')
     const manualPort = ref<number>(1883)
-    const selectedType = ref<string>('_mqtt._tcp')
+    const selectedType = ref<string>('_mqtt-ws._tcp.')
     const isScanning = ref<boolean>(false)
     const isCapacitorApp = ref<boolean>(Capacitor.isNativePlatform())
     const scanError = ref<string>('')
@@ -320,7 +325,7 @@ export default defineComponent({
       try {
         isScanning.value = true
         scanError.value = ''
-        scanTimeRemaining.value = 5
+        scanTimeRemaining.value = 3
 
         for (const serviceType of serviceTypes) {
           await ZeroConf.watch({
