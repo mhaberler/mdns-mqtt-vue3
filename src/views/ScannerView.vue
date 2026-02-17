@@ -157,6 +157,10 @@
               <option value="_mqtt-ws._tcp.">WS</option>
               <option value="_mqtt-wss._tcp.">WSS</option>
             </select>
+            <label v-if="selectedType === '_mqtt-wss._tcp.'" class="flex items-center gap-1.5">
+              <input type="checkbox" v-model="manualRejectUnauthorized" class="w-3.5 h-3.5 text-primary border-gray-300 rounded">
+              <span class="text-xs text-gray-600">Verify TLS</span>
+            </label>
             <button @click="addManualService" class="btn text-sm py-1.5 px-3 btn-primary">
               {{ manualEntry ? 'Replace' : 'Add' }}
             </button>
@@ -193,6 +197,7 @@ export default defineComponent({
     const manualHost = ref<string>('')
     const manualPort = ref<number>(1883)
     const selectedType = ref<string>('_mqtt-ws._tcp.')
+    const manualRejectUnauthorized = ref<boolean>(true)
     const isScanning = ref<boolean>(false)
     const isCapacitorApp = ref<boolean>(Capacitor.isNativePlatform())
     const scanError = ref<string>('')
@@ -351,7 +356,8 @@ export default defineComponent({
           port: parseInt(String(manualPort.value)),
           discovered: false,
           resolved: true,
-          source: 'manual'
+          source: 'manual',
+          rejectUnauthorized: manualRejectUnauthorized.value
         }
         services.value[MANUAL_KEY] = entry
         // Also set as preferred broker (reset tested state)
@@ -565,6 +571,7 @@ export default defineComponent({
       removeManualEntry,
       navigateToClient,
       runInlineTest,
+      manualRejectUnauthorized,
       toggleScan,
       setPreferred,
       clearPreferredBroker
