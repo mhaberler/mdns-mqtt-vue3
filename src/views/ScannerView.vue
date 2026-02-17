@@ -64,8 +64,8 @@
         </div>
       </div>
       <div class="flex flex-wrap gap-3">
-        <input v-model="manualHost" placeholder="Enter MQTT broker IP" class="flex-1 min-w-[200px] px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary outline-none">
-        <input v-model="manualPort" placeholder="Port (1883)" type="number" class="w-24 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary outline-none">
+        <input v-model="manualHost" class="flex-1 min-w-[200px] px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary outline-none">
+        <input v-model="manualPort" type="number" class="w-24 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary outline-none">
         <select v-model="selectedType" class="w-40 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white">
           <option value="_mqtt-ws._tcp.">MQTT WebSocket</option>
           <option value="_mqtt-wss._tcp.">MQTT WSS</option>
@@ -160,11 +160,13 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onUnmounted, watch, computed } from 'vue'
+import { defineComponent, ref, onUnmounted, onBeforeMount, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Capacitor } from '@capacitor/core'
+import { Preferences } from '@capacitor/preferences'
 import { ZeroConf, type ZeroConfService, type ZeroConfAction } from '@mhaberler/capacitor-zeroconf-nsd'
 import { useAppState, type ServiceEntry } from '../composables/useAppState'
+import { usePersistedRef } from '../composables/usePersistedRef'
 
 function removeLeadingAndTrailingDots(str: string): string {
   return str.replace(/^\.+|\.+$/g, '')
@@ -198,9 +200,9 @@ export default defineComponent({
      */
     const router = useRouter()
     const services = ref<Record<string, ServiceEntry>>({})
-    const manualHost = ref<string>('')
-    const manualPort = ref<number>(1883)
-    const selectedType = ref<string>('_mqtt-ws._tcp.')
+    const manualHost = usePersistedRef<string>('manualHost', '')
+    const manualPort = usePersistedRef<number>('manualPort', 1883)
+    const selectedType = usePersistedRef<string>('selectedType', '_mqtt-ws._tcp.')
     const isScanning = ref<boolean>(false)
     const isCapacitorApp = ref<boolean>(Capacitor.isNativePlatform())
     const scanError = ref<string>('')
@@ -554,6 +556,25 @@ export default defineComponent({
         if (brokerToConnect) {
           handleServicePress(brokerToConnect)
         }
+      }
+    })
+
+    // Load persisted form values before rendering to ensure they display on app restart
+    onBeforeMount(async () => {
+      const [hostData, portData, typeData] = await Promise.all([
+        Preferences.get({ key: 'manualHost' }),
+        Preferences.get({ key: 'manualPort' }),
+        Preferences.get({ key: 'selectedType' })
+      ])
+
+      if (hostData.value !== null) {
+        manualHost.value = hostData.value
+      }
+      if (portData.value !== null) {
+        manualPort.value = parseInt(portData.value, 10) || 1883
+      }
+      if (typeData.value !== null) {
+        selectedType.value = typeData.value
       }
     })
 
