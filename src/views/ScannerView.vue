@@ -33,6 +33,10 @@
                     <span class="w-1.5 h-1.5 bg-white rounded-full"></span>
                     Found
                   </span>
+                  <span v-else-if="preferredBrokerStatus === 'manual'" class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full" style="background-color: #FF9800; color: white;">
+                    <span class="w-1.5 h-1.5 bg-white rounded-full"></span>
+                    Manual
+                  </span>
                   <span v-else-if="preferredBrokerStatus === 'searching'" class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full animate-pulse" style="background-color: #FF9800; color: white;">
                     <span class="w-1.5 h-1.5 bg-white rounded-full animate-ping"></span>
                     Searching
@@ -197,6 +201,7 @@ export default defineComponent({
     const scanError = ref<string>('')
     const scanTimeRemaining = ref<number>(0)
     let scanTimer: NodeJS.Timeout | null = null
+    let hasTriggeredStartupScan = false
 
     // App-level persisted state (shared across components)
     const { preferredBrokerRef, autoConnectEnabledRef } = useAppState()
@@ -243,7 +248,9 @@ export default defineComponent({
           name: `Manual MQTT (${manualHost.value}:${manualPort.value})`,
           type: selectedType.value,
           host: manualHost.value,
-          port: parseInt(String(manualPort.value))
+          port: parseInt(String(manualPort.value)),
+          discovered: false,  // Explicitly mark as manual (not from mDNS)
+          resolved: true      // Manual brokers are always "resolved"
         }
         manualHost.value = ''
         manualPort.value = 1883
@@ -467,8 +474,10 @@ export default defineComponent({
 
     // Startup discovery: scan for preferred broker if it's not found
     watch(preferredBrokerRef, (broker) => {
-      if (broker && broker.discovered !== false && isCapacitorApp.value && !isScanning.value) {
+      if (broker && !hasTriggeredStartupScan && broker.discovered === true && isCapacitorApp.value && !isScanning.value) {
         // Preferred broker exists and is a discovered (mDNS) broker - scan to find it
+        // Note: Manual brokers (discovered === false) skip this scan
+        hasTriggeredStartupScan = true
         const matchResult = findPreferredBroker()
         if (matchResult.status === 'not-found') {
           console.log('Preferred broker not found, starting discovery scan...')
@@ -484,13 +493,18 @@ export default defineComponent({
       preferredBrokerMatchResult.value.service
     )
 
-    const preferredBrokerStatus = computed<'found' | 'searching' | 'not-found'>(() => {
+    const preferredBrokerStatus = computed<'found' | 'manual' | 'searching' | 'not-found'>(() => {
       if (!preferredBroker.value) return 'not-found'
+
+      // Manual brokers get their own status (orange badge)
+      if (preferredBroker.value.discovered === false) {
+        return 'manual'
+      }
 
       const matchResult = preferredBrokerMatchResult.value
 
-      // If found (exact, fuzzy, or manual), show as found
-      if (matchResult.service && (matchResult.service.resolved || !matchResult.service.discovered)) {
+      // If found via mDNS, show as found
+      if (matchResult.service && matchResult.service.resolved) {
         return 'found'
       }
 
@@ -530,9 +544,12 @@ export default defineComponent({
 
     // Watch for preferred broker being found and auto-connect if enabled
     watch(preferredBrokerStatus, (newStatus) => {
-      if (newStatus === 'found' && autoConnectEnabled.value && preferredBrokerService.value && !isAutoConnecting.value) {
-        // Auto-connect when preferred broker is found and auto-connect is enabled
-        handleServicePress(preferredBrokerService.value)
+      // Auto-connect for both 'found' (mDNS) and 'manual' brokers
+      if ((newStatus === 'found' || newStatus === 'manual') && autoConnectEnabled.value && !isAutoConnecting.value) {
+        const brokerToConnect = newStatus === 'found' ? preferredBrokerService.value : preferredBroker.value
+        if (brokerToConnect) {
+          handleServicePress(brokerToConnect)
+        }
       }
     })
 
