@@ -504,15 +504,21 @@ export default defineComponent({
       else startScan()
     }
 
-    // Startup: scan for preferred broker if it's an mDNS-discovered one
+    // Startup: scan for preferred broker if it's an mDNS-discovered one, or if no preferred broker exists
     watch(preferredBrokerRef, (broker) => {
-      if (broker && !hasTriggeredStartupScan && broker.discovered === true && isCapacitorApp.value && !isScanning.value) {
-        hasTriggeredStartupScan = true
-        // Check if broker is already in services list
-        const found = Object.values(services.value).some(
-          s => s.name === broker.name && s.port === broker.port
-        )
-        if (!found) {
+      if (!hasTriggeredStartupScan && isCapacitorApp.value && !isScanning.value) {
+        if (broker && broker.discovered === true) {
+          // Scan if preferred broker is discovered but not in services list
+          hasTriggeredStartupScan = true
+          const found = Object.values(services.value).some(
+            s => s.name === broker.name && s.port === broker.port
+          )
+          if (!found) {
+            startScan()
+          }
+        } else if (!broker) {
+          // Auto-scan if no preferred broker is set
+          hasTriggeredStartupScan = true
           startScan()
         }
       }
