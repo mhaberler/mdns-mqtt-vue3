@@ -1,6 +1,9 @@
 // src/composables/useAppState.ts
 import { usePersistedRef } from './usePersistedRef'
 
+/** How the broker was added to the list */
+export type BrokerSource = 'preconfigured' | 'discovered' | 'manual'
+
 /**
  * Service entry representing an MQTT broker.
  *
@@ -14,12 +17,17 @@ export type ServiceEntry = {
   host: string
   port: number
   domain?: string  // e.g., 'local' - added for robust broker matching
-  discovered?: boolean
+  discovered?: boolean  // kept for backward compat; prefer `source`
   resolved?: boolean
   txtRecord?: Record<string, any>
   ipv4Addresses?: string[]
   ipv6Addresses?: string[]
   autoConnect?: boolean  // Auto-connect to this broker when preferred and status is found/manual
+  source?: BrokerSource
+  username?: string
+  password?: string
+  rejectUnauthorized?: boolean  // TLS certificate verification (default true)
+  tested?: boolean  // true after a successful inline test-connect
 }
 
 /**

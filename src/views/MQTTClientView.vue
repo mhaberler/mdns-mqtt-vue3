@@ -6,23 +6,23 @@
         <div class="flex items-center gap-2">
           <span class="text-sm font-medium text-gray-500">{{ connectionStatusText }}</span>
           <div :class="['w-3 h-3 rounded-full',
-            connecting ? 'bg-warning animate-pulse' :
-            connected ? 'bg-success shadow-[0_0_8px_rgba(76,175,80,0.6)]' :
+            mqttConn.isTrying.value ? 'bg-warning animate-pulse' :
+            mqttConn.isConnected.value ? 'bg-success shadow-[0_0_8px_rgba(76,175,80,0.6)]' :
             'bg-error']"></div>
         </div>
-        <p class="font-mono text-xs text-gray-400 break-all">{{ brokerUrl }}</p>
+        <p class="font-mono text-xs text-gray-400 break-all">{{ mqttConn.brokerUrl.value }}</p>
       </div>
 
       <div class="flex gap-2 w-full md:w-auto">
         <button
           :class="['btn flex-1 md:flex-none font-bold',
-            connected ? 'btn-danger' :
-            connecting ? 'bg-gray-200 text-gray-500 cursor-not-allowed' :
+            mqttConn.isConnected.value ? 'btn-danger' :
+            mqttConn.isTrying.value ? 'bg-gray-200 text-gray-500 cursor-not-allowed' :
             'btn-primary']"
-          @click="connected ? disconnectClient() : connectToMQTT()"
-          :disabled="connecting"
+          @click="mqttConn.isConnected.value ? mqttConn.disconnect() : connectToBroker()"
+          :disabled="mqttConn.isTrying.value"
         >
-          {{ connected ? 'Disconnect' : connecting ? 'Connecting...' : 'Connect' }}
+          {{ mqttConn.isConnected.value ? 'Disconnect' : mqttConn.isTrying.value ? 'Connecting...' : 'Connect' }}
         </button>
         <button @click="goBack" class="btn bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold shadow-sm">
           Back
@@ -30,18 +30,18 @@
       </div>
     </div>
 
-    <div v-if="error" class="mb-6 p-4 bg-error/10 border border-error/20 rounded-xl flex justify-between items-center animate-in fade-in slide-in-from-top-4">
-      <p class="text-error text-sm font-medium">{{ error }}</p>
-      <button @click="error = null" class="w-8 h-8 flex items-center justify-center text-error/40 hover:text-error text-xl font-bold">×</button>
+    <div v-if="mqttConn.error.value" class="mb-6 p-4 bg-error/10 border border-error/20 rounded-xl flex justify-between items-center animate-in fade-in slide-in-from-top-4">
+      <p class="text-error text-sm font-medium">{{ mqttConn.error.value }}</p>
+      <button @click="mqttConn.error.value = null" class="w-8 h-8 flex items-center justify-center text-error/40 hover:text-error text-xl font-bold">×</button>
     </div>
 
-    <div v-if="connecting" class="mb-6 p-8 bg-white border border-gray-100 rounded-xl text-center">
+    <div v-if="mqttConn.isTrying.value" class="mb-6 p-8 bg-white border border-gray-100 rounded-xl text-center">
       <div class="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-3"></div>
       <p class="text-gray-500 font-medium">Connecting to MQTT broker...</p>
     </div>
 
     <!-- Message publishing section -->
-    <div v-if="connected" class="mb-6 p-5 md:p-6 bg-white rounded-xl shadow-sm border border-gray-100 animate-in fade-in zoom-in-95">
+    <div v-if="mqttConn.isConnected.value" class="mb-6 p-5 md:p-6 bg-white rounded-xl shadow-sm border border-gray-100 animate-in fade-in zoom-in-95">
       <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
         <span class="w-2 h-5 bg-primary rounded-sm"></span>
         Publish Message
@@ -66,20 +66,20 @@
 
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col min-h-[400px]">
       <div class="p-5 md:p-6 border-b border-gray-50 flex justify-between items-center">
-        <h3 class="text-lg font-bold text-gray-800">Messages <span class="text-primary font-mono ml-1">({{ messages.length }})</span></h3>
-        <button @click="clearMessages" class="text-xs font-bold text-gray-400 hover:text-error transition-colors uppercase tracking-wider">Clear Log</button>
+        <h3 class="text-lg font-bold text-gray-800">Messages <span class="text-primary font-mono ml-1">({{ mqttConn.messages.value.length }})</span></h3>
+        <button @click="mqttConn.clearMessages()" class="text-xs font-bold text-gray-400 hover:text-error transition-colors uppercase tracking-wider">Clear Log</button>
       </div>
 
-      <div v-if="messages.length === 0" class="flex-1 flex flex-col items-center justify-center p-12 text-gray-400">
+      <div v-if="mqttConn.messages.value.length === 0" class="flex-1 flex flex-col items-center justify-center p-12 text-gray-400">
         <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
           <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
         </div>
-        <p>{{ connected ? 'Waiting for messages...' : 'Connect to start receiving messages' }}</p>
+        <p>{{ mqttConn.isConnected.value ? 'Waiting for messages...' : 'Connect to start receiving messages' }}</p>
       </div>
 
       <div class="p-2 space-y-2 overflow-y-auto max-h-[60vh]">
         <div
-          v-for="message in messages"
+          v-for="message in mqttConn.messages.value"
           :key="message.id"
           class="p-4 rounded-lg transition-all"
           :class="[message.topic === 'system' ? 'bg-gray-50 border-l-4 border-gray-400 text-gray-600 italic' : 'bg-white border border-gray-100 shadow-sm']"
@@ -97,32 +97,20 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, onMounted, onUnmounted } from 'vue'
+import { defineComponent, ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import mqtt, { MqttClient } from 'mqtt'
-import { useAppState } from '../composables/useAppState'
-
-type MessageItem = { id: string; topic: string; payload: string; timestamp: string }
-
-type ServiceInfo = {
-  name?: string
-  type?: string
-  host?: string
-  port?: number
-  discovered?: boolean
-  txtRecord?: Record<string, any>
-}
+import { useMqttConnection, buildBrokerUrl } from '../composables/useMqttConnection'
+import type { ServiceEntry } from '../composables/useAppState'
 
 export default defineComponent({
   name: 'MQTTClientView',
   setup() {
     const route = useRoute()
     const router = useRouter()
+    const mqttConn = useMqttConnection()
 
-    // Access shared app state
-    const { preferredBrokerRef } = useAppState()
-
-    const service: ServiceInfo = {
+    // Build service from query params (backward compat) or use connected broker
+    const service: ServiceEntry = mqttConn.connectedBroker.value ?? {
       name: (route.query.name as string) || 'Unknown Service',
       type: (route.query.type as string) || '_mqtt._tcp.',
       host: (route.query.host as string) || 'localhost',
@@ -131,193 +119,54 @@ export default defineComponent({
       txtRecord: route.query.txtRecord ? JSON.parse(route.query.txtRecord as string) : {}
     }
 
-    const connected = ref<boolean>(false)
-    const connecting = ref<boolean>(false)
-    const messages = ref<MessageItem[]>([])
-    const error = ref<string | null>(null)
     const publishTopic = ref<string>('test/topic')
     const publishMessage = ref<string>('Hello, MQTT!')
-    let mqttClient: MqttClient | null = null
 
     const serviceName = computed(() => service.name || 'MQTT Service')
 
     const connectionStatusText = computed(() => {
-      if (connecting.value) return 'Connecting...'
-      if (connected.value) return 'Connected'
+      if (mqttConn.isTrying.value) return 'Connecting...'
+      if (mqttConn.isConnected.value) return 'Connected'
       return 'Disconnected'
     })
 
-    const wsPatterns = ['_mqtt-ws._tcp.', '_mqtt-wss._tcp.', '._mqtt-ws._tcp', '._mqtt-wss._tcp']
-    const tlsPatterns = ['_mqtts._tcp.', '_mqtt-wss._tcp.', '._mqtts._tcp.', '._mqtt-wss._tcp.']
+    const connectToBroker = () => {
+      mqttConn.connect(service)
+    }
 
-    const brokerUrl = computed(() => {
-      const isWebSocket = wsPatterns.some(pattern => (service.type || '').includes(pattern))
-      const isTls = tlsPatterns.some(pattern => (service.type || '').includes(pattern))
-
-      if (isWebSocket) {
-        const protocol = isTls ? 'wss' : 'ws'
-        return `${protocol}://${service.host}:${service.port}`
-      } else {
-        const protocol = isTls ? 'mqtts' : 'mqtt'
-        return `${protocol}://${service.host}:${service.port}`
-      }
-    })
-
-    const connectToMQTT = async () => {
-      connecting.value = true
-      error.value = null
-
-      try {
-        console.log('Connecting to:', brokerUrl.value)
-
-        const options = {
-          clientId: `mqtt_vue_${Math.random().toString(16).substr(2, 8)}`,
-          username: '',
-          password: '',
-          clean: true,
-          connectTimeout: 10000,
-          reconnectPeriod: 0
+    const publishMessageToTopic = async () => {
+      if (mqttConn.isConnected.value && publishTopic.value && publishMessage.value) {
+        try {
+          await mqttConn.publish(publishTopic.value, publishMessage.value)
+        } catch (_) {
+          // error is set in composable
         }
-
-        const isWebSocket = wsPatterns.some(pattern => (service.type || '').includes(pattern))
-        if (isWebSocket) {
-          const wsPath = service.txtRecord?.path || '/mqtt'
-          const wsUrl = `${brokerUrl.value}${wsPath}`
-          mqttClient = mqtt.connect(wsUrl, options)
-        } else {
-          mqttClient = mqtt.connect(brokerUrl.value, options)
-        }
-
-        mqttClient.on('connect', () => {
-          connected.value = true
-          connecting.value = false
-
-          mqttClient!.subscribe('#', (err) => {
-            if (err) {
-              error.value = `Failed to subscribe: ${err.message}`
-            } else {
-              addMessage('system', 'Connected and subscribed to all topics (#)')
-            }
-          })
-        })
-
-        mqttClient.on('error', (err: any) => {
-          error.value = `Connection failed: ${err?.message || 'Unknown error'}`
-          connecting.value = false
-          connected.value = false
-        })
-
-        mqttClient.on('close', () => {
-          connected.value = false
-          connecting.value = false
-          addMessage('system', 'Connection closed')
-        })
-
-        mqttClient.on('message', (topic: string, message: Buffer) => {
-          let payload: string
-          try {
-            const messageStr = message.toString()
-            const parsed = JSON.parse(messageStr)
-            payload = JSON.stringify(parsed, null, 2)
-          } catch (e) {
-            payload = message.toString()
-          }
-          addMessage(topic, payload)
-        })
-
-        setTimeout(() => {
-          if (connecting.value) {
-            error.value = 'Connection timeout - please check the broker address and port'
-            connecting.value = false
-            if (mqttClient) mqttClient.end(true)
-          }
-        }, 15000)
-
-      } catch (err: any) {
-        error.value = `Connection failed: ${err?.message}`
-        connecting.value = false
       }
-    }
-
-    const disconnectClient = () => {
-      if (mqttClient) {
-        mqttClient.end()
-        mqttClient = null
-      }
-      connected.value = false
-      addMessage('system', 'Disconnected from broker')
-      console.log('Disconnected from MQTT broker')
-    }
-
-    const publishMessageToTopic = () => {
-      if (mqttClient && connected.value && publishTopic.value && publishMessage.value) {
-        mqttClient.publish(publishTopic.value, publishMessage.value, (err?: Error) => {
-          if (err) {
-            error.value = `Failed to publish: ${err.message}`
-          } else {
-            addMessage('system', `Published to ${publishTopic.value}: ${publishMessage.value}`)
-          }
-        })
-      }
-    }
-
-    const addMessage = (topic: string, payload: string) => {
-      const timestamp = new Date().toLocaleTimeString()
-      const newMessage: MessageItem = {
-        id: `${timestamp}-${Math.random().toString(16).substr(2, 8)}`,
-        topic,
-        payload,
-        timestamp
-      }
-
-      messages.value = [newMessage, ...messages.value].slice(0, 5)
-    }
-
-    const clearMessages = () => {
-      messages.value = []
     }
 
     const goBack = () => {
-      // Disable auto-connect to prevent immediate reconnection
-      if (preferredBrokerRef.value) {
-        preferredBrokerRef.value.autoConnect = false
-      }
+      // Don't disconnect — connection persists in background
       router.back()
     }
 
     onMounted(() => {
-      addMessage('system', `Configured for ${serviceName.value}`)
-      // Auto-connect when entering the view
-      connectToMQTT()
+      mqttConn.addMessage('system', `Configured for ${serviceName.value}`)
+      // If not already connected, auto-connect
+      if (mqttConn.connectionState.value === 'disconnected') {
+        connectToBroker()
+      }
     })
-
-    onUnmounted(() => {
-      disconnectClient()
-    })
-
-    const scanTimeRemaining = ref<number>(0)
-    let scanTimer: NodeJS.Timeout | null = null
-    let hasTriggeredStartupScan = false  // ← ADD THIS LINE
 
     return {
       service,
       serviceName,
-      connected,
-      connecting,
-      messages,
-      error,
       publishTopic,
       publishMessage,
       connectionStatusText,
-      brokerUrl,
-      connectToMQTT,
-      disconnectClient,
+      mqttConn,
+      connectToBroker,
       publishMessageToTopic,
-      clearMessages,
-      goBack,
-      scanTimeRemaining,
-      scanTimer,
-      hasTriggeredStartupScan
+      goBack
     }
   }
 })

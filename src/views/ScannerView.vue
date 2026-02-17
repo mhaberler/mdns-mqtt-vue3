@@ -1,159 +1,173 @@
 <template>
-  <div class="w-full min-h-screen p-4 md:p-6 bg-gray-50">
-    <div class="mb-6 p-5 md:p-6 bg-white rounded-xl shadow-sm border border-gray-100">
-      <h1 class="text-2xl font-bold text-gray-800 mb-6">MQTT/MQTT-WS mDNS Scanner</h1>
-      <div class="flex items-center gap-4 mb-4 flex-wrap">
+  <div class="w-full min-h-screen p-3 md:p-6 bg-gray-50">
+    <!-- Header row: title + scan button -->
+    <div class="flex items-center justify-between mb-3">
+      <h1 class="text-lg font-bold text-gray-800">Broker Configuration</h1>
+      <div class="flex items-center gap-2">
         <button
           v-if="isCapacitorApp"
           @click="toggleScan"
-          :class="['btn', isScanning ? 'btn-danger' : 'btn-success']">
-          {{ isScanning ? (scanTimeRemaining > 0 ? `Stop Scan (${scanTimeRemaining}s)` : 'Stop Scan') : 'Discover (3s)' }}
+          :class="['btn text-sm py-1.5 px-3', isScanning ? 'btn-danger' : 'btn-success']">
+          {{ isScanning ? `Scan (${scanTimeRemaining}s)` : 'Discover' }}
         </button>
-        <div v-if="!isCapacitorApp" class="text-xs text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200">
-          mDNS scanning requires native app
-        </div>
-      </div>
-      <div v-if="preferredBroker" class="mb-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200 shadow-sm">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          <div class="flex-1 space-y-2">
-            <div class="flex items-center gap-3">
-              <div class="flex items-center justify-center w-10 h-10 rounded-full bg-blue-500 text-white flex-shrink-0">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
-                </svg>
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <h3 class="text-base font-bold text-gray-800 break-words">{{ preferredBroker.name }}</h3>
-                  <span v-if="preferredBrokerStatus === 'found'" class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full" style="background-color: #4CAF50; color: white;">
-                    <span class="w-1.5 h-1.5 bg-white rounded-full"></span>
-                    Found
-                  </span>
-                  <span v-else-if="preferredBrokerStatus === 'manual'" class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full" style="background-color: #FF9800; color: white;">
-                    <span class="w-1.5 h-1.5 bg-white rounded-full"></span>
-                    Manual
-                  </span>
-                  <span v-else-if="preferredBrokerStatus === 'searching'" class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full animate-pulse" style="background-color: #FF9800; color: white;">
-                    <span class="w-1.5 h-1.5 bg-white rounded-full animate-ping"></span>
-                    Searching
-                  </span>
-                  <span v-else class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full" style="background-color: #F44336; color: white;">
-                    <span class="w-1.5 h-1.5 bg-white rounded-full"></span>
-                    Not found
-                  </span>
-                </div>
-                <div class="flex items-center gap-3 mt-1 text-xs text-gray-600">
-                  <span class="font-mono">{{ preferredBroker.host }}:{{ preferredBroker.port }}</span>
-                  <span class="px-2 py-0.5 bg-white/60 rounded text-[10px] font-medium text-gray-500">{{ preferredBroker.type }}</span>
-                </div>
-              </div>
-            </div>
-            <label class="flex items-center gap-2 mt-3">
-              <input type="checkbox" v-model="preferredBroker.autoConnect" class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
-              <span class="text-sm font-medium text-gray-700">Auto Connect</span>
-            </label>
-          </div>
-          <div class="flex gap-2 flex-shrink-0 self-start md:self-center">
-            <button @click="handleServicePress(preferredBroker)" class="btn btn-success text-sm font-semibold shadow-sm">
-              Connect
-            </button>
-            <button @click="clearPreferredBroker" class="btn bg-white hover:bg-red-50 text-red-600 border border-red-200 text-sm font-semibold shadow-sm">
-              Clear
-            </button>
-          </div>
-        </div>
-      </div>
-      <div class="flex flex-wrap gap-3">
-        <input v-model="manualHost" placeholder="Enter MQTT broker IP" class="flex-1 min-w-[200px] px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary outline-none">
-        <input v-model="manualPort" placeholder="Port (1883)" type="number" class="w-24 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary outline-none">
-        <select v-model="selectedType" class="w-40 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white">
-          <option value="_mqtt-ws._tcp.">MQTT WebSocket</option>
-          <option value="_mqtt-wss._tcp.">MQTT WSS</option>
-        </select>
-        <button @click="addManualService" class="btn btn-primary">
-          Add
-        </button>
-      </div>
-      <div v-if="scanError" class="mt-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-100">
-        <p>{{ scanError }}</p>
+        <span v-if="!isCapacitorApp" class="text-[10px] text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-200">
+          mDNS: native only
+        </span>
       </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div v-if="Object.keys(services).length === 0" class="col-span-full py-12 text-center text-gray-500">
-        <p v-if="isCapacitorApp && !isScanning" class="mb-2 text-lg">
-          No services found. Click "Start Scan" to discover MQTT brokers.
-        </p>
-        <p v-else-if="isCapacitorApp && isScanning" class="mb-2 text-lg animate-pulse">
-          Scanning for MQTT services...
-        </p>
-        <p v-else class="mb-2 text-lg">
-          No services configured. Add a manual MQTT broker above.
-        </p>
-        <p class="text-sm opacity-70 italic">Common ports: 1883 (MQTT), 8883 (MQTTS), 9001 (WebSocket)</p>
+    <!-- Preferred broker card -->
+    <div v-if="preferredBroker" class="mb-3 p-3 rounded-xl border-2 shadow-sm"
+      :class="preferredCardClasses">
+      <div class="flex items-start gap-3">
+        <!-- Connection state indicator -->
+        <div class="flex-shrink-0 mt-0.5">
+          <div :class="['w-4 h-4 rounded-full', stateIndicatorClass]"></div>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="font-bold text-sm text-gray-800 break-words">{{ preferredBroker.name }}</span>
+            <!-- Source badge -->
+            <span :class="['inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full text-white', sourceBadgeClass]">
+              {{ sourceBadgeLabel }}
+            </span>
+            <!-- Tested badge -->
+            <span v-if="preferredBroker.tested" class="inline-flex items-center gap-0.5 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-success text-white">
+              &#10003; Tested
+            </span>
+          </div>
+          <div class="flex items-center gap-2 mt-1 text-xs text-gray-500 font-mono">
+            <span>{{ preferredBroker.host }}:{{ preferredBroker.port }}</span>
+            <span class="bg-gray-100 px-1.5 py-0.5 rounded text-[10px]">{{ friendlyType(preferredBroker.type) }}</span>
+          </div>
+          <!-- Credential fields (shown for discovered/manual when WSS or user wants) -->
+          <div v-if="showCredentials" class="mt-2 flex flex-wrap gap-2">
+            <input v-model="preferredBroker.username" placeholder="Username" class="flex-1 min-w-[100px] px-2 py-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-primary outline-none">
+            <input v-model="preferredBroker.password" placeholder="Password" type="password" class="flex-1 min-w-[100px] px-2 py-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-primary outline-none">
+          </div>
+          <!-- TLS toggle -->
+          <label v-if="isWssType(preferredBroker.type)" class="flex items-center gap-2 mt-2">
+            <input type="checkbox" v-model="preferredBroker.rejectUnauthorized" class="w-3.5 h-3.5 text-primary border-gray-300 rounded focus:ring-primary">
+            <span class="text-xs text-gray-600">Verify TLS certificate</span>
+          </label>
+        </div>
+      </div>
+      <!-- Action buttons row -->
+      <div class="flex gap-2 mt-3">
+        <button @click="runInlineTest" :disabled="isTesting" class="btn text-xs py-1.5 px-3 btn-warning flex-1">
+          {{ isTesting ? 'Testing...' : 'Test' }}
+        </button>
+        <button @click="navigateToClient(preferredBroker)" class="btn text-xs py-1.5 px-3 btn-primary flex-1">
+          Open Client
+        </button>
+        <button @click="clearPreferredBroker" class="btn text-xs py-1.5 px-3 bg-white hover:bg-red-50 text-red-600 border border-red-200">
+          Clear
+        </button>
+      </div>
+      <!-- Inline test result -->
+      <div v-if="testResult !== null" class="mt-2 text-xs font-semibold px-2 py-1 rounded" :class="testResult ? 'bg-success/10 text-success' : 'bg-error/10 text-error'">
+        {{ testResult ? 'Test passed — broker is reachable' : 'Test failed — check host, port, and credentials' }}
+      </div>
+    </div>
+
+    <!-- Error display -->
+    <div v-if="scanError" class="mb-3 p-2 bg-red-50 text-red-700 rounded-lg text-xs border border-red-100">
+      {{ scanError }}
+    </div>
+
+    <!-- Broker list -->
+    <div class="space-y-1">
+      <!-- Pre-configured brokers -->
+      <div v-if="preconfiguredList.length > 0">
+        <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-1 mb-1">Pre-configured</div>
+        <div v-for="entry in preconfiguredList" :key="entry.key"
+          class="broker-row" :class="{ 'broker-row-preferred': isPreferred(entry.service) }">
+          <div class="flex items-center gap-2 flex-1 min-w-0">
+            <span class="font-semibold text-sm text-gray-800 truncate">{{ entry.service.name }}</span>
+            <span class="text-[10px] text-gray-400 font-mono flex-shrink-0">{{ entry.service.host }}:{{ entry.service.port }}</span>
+          </div>
+          <div class="flex gap-1 flex-shrink-0">
+            <button @click="navigateToClient(entry.service)" class="btn-icon text-primary" title="Open client">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+            </button>
+            <button v-if="!isPreferred(entry.service)" @click="setPreferred(entry.service)" class="btn-icon text-warning" title="Set preferred">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+            </button>
+            <span v-else class="btn-icon text-amber-500">
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+            </span>
+          </div>
+        </div>
       </div>
 
-      <div v-for="(service, key) in services" :key="key"
-        class="group relative bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:border-primary/20 hover:shadow-md transition-all"
-        :class="{
-          'border-l-4 border-l-primary': service.discovered,
-          'preferred-broker-card': preferredBrokerService && service.name === preferredBrokerService.name && service.type === preferredBrokerService.type,
-          'cursor-pointer': !(preferredBrokerService && service.name === preferredBrokerService.name && service.type === preferredBrokerService.type)
-        }"
-        @click="(preferredBrokerService && service.name === preferredBrokerService.name && service.type === preferredBrokerService.type) ? null : handleServicePress(service)">
-
-        <div class="flex justify-between items-start mb-3">
-          <h3 class="font-bold text-lg text-gray-800">{{ service.name }}</h3>
-          <div class="flex gap-2">
-            <button
-              v-if="preferredBrokerService && service.name === preferredBrokerService.name && service.type === preferredBrokerService.type"
-              @click.stop="setPreferred(service)"
-              class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm transition-all"
-              style="background-color: #FFD700; color: #1a1a1a;">
-              <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
-              </svg>
-              Default
+      <!-- Discovered brokers -->
+      <div v-if="discoveredList.length > 0">
+        <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-1 mt-2 mb-1">Discovered</div>
+        <div v-for="entry in discoveredList" :key="entry.key"
+          class="broker-row" :class="{ 'broker-row-preferred': isPreferred(entry.service) }">
+          <div class="flex items-center gap-2 flex-1 min-w-0">
+            <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" :class="entry.service.resolved ? 'bg-success' : 'bg-warning animate-pulse'"></span>
+            <span class="font-semibold text-sm text-gray-800 truncate">{{ entry.service.name }}</span>
+            <span class="text-[10px] text-gray-400 font-mono flex-shrink-0">{{ entry.service.host }}:{{ entry.service.port }}</span>
+          </div>
+          <div class="flex gap-1 flex-shrink-0">
+            <button @click="navigateToClient(entry.service)" class="btn-icon text-primary" title="Open client">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
             </button>
-            <button
-              v-else
-              @click.stop="setPreferred(service)"
-              class="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-full text-xs font-semibold shadow-sm transition-all active:scale-95">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
-              </svg>
-              Prefer
+            <button v-if="!isPreferred(entry.service)" @click="setPreferred(entry.service)" class="btn-icon text-warning" title="Set preferred">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+            </button>
+            <span v-else class="btn-icon text-amber-500">
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Manual broker section -->
+      <div>
+        <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-1 mt-2 mb-1">Manual</div>
+        <!-- Existing manual broker (if any) -->
+        <div v-if="manualEntry" class="broker-row" :class="{ 'broker-row-preferred': isPreferred(manualEntry) }">
+          <div class="flex items-center gap-2 flex-1 min-w-0">
+            <span class="font-semibold text-sm text-gray-800 truncate">{{ manualEntry.name }}</span>
+            <span class="text-[10px] text-gray-400 font-mono flex-shrink-0">{{ manualEntry.host }}:{{ manualEntry.port }}</span>
+          </div>
+          <div class="flex gap-1 flex-shrink-0">
+            <button @click="navigateToClient(manualEntry)" class="btn-icon text-primary" title="Open client">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+            </button>
+            <button v-if="!isPreferred(manualEntry)" @click="setPreferred(manualEntry)" class="btn-icon text-warning" title="Set preferred">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+            </button>
+            <span v-else class="btn-icon text-amber-500">
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+            </span>
+            <button @click="removeManualEntry" class="btn-icon text-red-400 hover:text-red-600" title="Remove">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
           </div>
         </div>
-
-        <div class="space-y-1 text-sm text-gray-600">
-          <p><span class="font-medium">Type:</span> {{ service.type }}</p>
-          <p><span class="font-medium">Host:</span> {{ service.host }}</p>
-          <p><span class="font-medium">Port:</span> {{ service.port }}</p>
+        <!-- Manual entry form -->
+        <div class="mt-1 p-2 bg-white rounded-lg border border-gray-100">
+          <div class="flex flex-wrap gap-2">
+            <input v-model="manualHost" placeholder="Host / IP" class="flex-1 min-w-[120px] px-2 py-1.5 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-primary outline-none">
+            <input v-model="manualPort" placeholder="Port" type="number" class="w-20 px-2 py-1.5 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-primary outline-none">
+            <select v-model="selectedType" class="px-2 py-1.5 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-primary outline-none bg-white">
+              <option value="_mqtt-ws._tcp.">WS</option>
+              <option value="_mqtt-wss._tcp.">WSS</option>
+            </select>
+            <button @click="addManualService" class="btn text-sm py-1.5 px-3 btn-primary">
+              {{ manualEntry ? 'Replace' : 'Add' }}
+            </button>
+          </div>
         </div>
+      </div>
 
-        <div class="mt-4 pt-4 border-t border-gray-50 flex justify-between items-center">
-          <span v-if="service.discovered" class="text-xs font-semibold text-primary flex items-center gap-1">
-            <span class="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></span>
-            mDNS {{ service.resolved ? '(Resolved)' : '(Resolving...)' }}
-          </span>
-          <span v-else class="text-xs font-semibold text-gray-400">Manual</span>
-
-          <button
-            v-if="preferredBrokerService && service.name === preferredBrokerService.name && service.type === preferredBrokerService.type"
-            @click.stop="handleServicePress(service)"
-            class="text-xs font-bold text-white bg-success hover:bg-success/90 px-3 py-1.5 rounded shadow-sm transition-colors active:scale-95">
-            CONNECT →
-          </button>
-          <span v-else class="text-xs font-bold text-success bg-success/10 px-2 py-1 rounded">
-            TAP TO CONNECT →
-          </span>
-        </div>
-
-        <div v-if="service.txtRecord && Object.keys(service.txtRecord).length > 0" class="mt-3 text-[10px] font-mono bg-gray-50 p-2 rounded text-gray-400 overflow-x-auto">
-          TXT: {{ JSON.stringify(service.txtRecord) }}
-        </div>
+      <!-- Empty state -->
+      <div v-if="Object.keys(services).length === 0 && !manualEntry" class="py-8 text-center text-gray-400 text-sm">
+        <p>No brokers available. Discover via mDNS or add one manually.</p>
+        <p class="text-xs mt-1 italic">Common ports: 1883 (MQTT), 8883 (MQTTS), 9001 (WS)</p>
       </div>
     </div>
   </div>
@@ -164,38 +178,16 @@ import { defineComponent, ref, onUnmounted, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Capacitor } from '@capacitor/core'
 import { ZeroConf, type ZeroConfService, type ZeroConfAction } from '@mhaberler/capacitor-zeroconf-nsd'
-import { useAppState, type ServiceEntry } from '../composables/useAppState'
+import { useAppState, type ServiceEntry, type BrokerSource } from '../composables/useAppState'
+import { useMqttConnection } from '../composables/useMqttConnection'
 
 function removeLeadingAndTrailingDots(str: string): string {
   return str.replace(/^\.+|\.+$/g, '')
 }
 
-type BrokerMatchStatus = 'exact' | 'fuzzy' | 'manual' | 'not-found'
-
-interface BrokerMatchResult {
-  status: BrokerMatchStatus
-  service: ServiceEntry | null
-}
-
 export default defineComponent({
   name: 'ScannerView',
   setup() {
-    /**
-     * Enhanced Auto-Connect Implementation
-     *
-     * Key improvements:
-     * 1. Simple matching: Compares instance name and port (as per requirement)
-     * 2. Visual feedback: Status badges (Found/Searching/Not found) + gold outline on preferred card
-     * 3. Better timeout: 12s polling instead of hard-coded 5s wait
-     * 4. Loading state: isAutoConnecting prevents double-clicks and shows "Connecting..." text
-     *
-     * Edge cases handled:
-     * - Preferred broker is manual service (always "available", no scan needed)
-     * - Preferred broker found but not yet resolved (waits for resolution before connecting)
-     * - Network unavailable / non-native platform (shows helpful error message)
-     * - Scan already in progress (reuses existing scan, no duplicate start)
-     * - Auto-connect clicked multiple times (debounced via isAutoConnecting flag)
-     */
     const router = useRouter()
     const services = ref<Record<string, ServiceEntry>>({})
     const manualHost = ref<string>('')
@@ -205,30 +197,32 @@ export default defineComponent({
     const isCapacitorApp = ref<boolean>(Capacitor.isNativePlatform())
     const scanError = ref<string>('')
     const scanTimeRemaining = ref<number>(0)
-    let scanTimer: NodeJS.Timeout | null = null
+    let scanTimer: ReturnType<typeof setInterval> | null = null
     let hasTriggeredStartupScan = false
 
-    // App-level persisted state (shared across components)
-    const { preferredBrokerRef } = useAppState()
+    // Inline test state
+    const isTesting = ref<boolean>(false)
+    const testResult = ref<boolean | null>(null)
 
-    // Aliases for template compatibility
+    // Shared state
+    const { preferredBrokerRef } = useAppState()
+    const mqttConn = useMqttConnection()
+
     const preferredBroker = preferredBrokerRef
-    const isAutoConnecting = ref<boolean>(false)
 
     // Service types to scan for
-    const serviceTypes: string[] = [
-      '_mqtt-ws._tcp.',
-      '_mqtt-wss._tcp.'
-    ]
+    const serviceTypes: string[] = ['_mqtt-ws._tcp.', '_mqtt-wss._tcp.']
 
-    const defaultServices: Record<string, any> = {
+    // --- Pre-configured brokers ---
+    const defaultServices: Record<string, ServiceEntry> = {
       'test-mosquitto-wss': {
         name: 'test.mosquitto.org (WSS)',
         type: '_mqtt-wss._tcp.',
         host: 'test.mosquitto.org',
         port: 8081,
         discovered: false,
-        resolved: true
+        resolved: true,
+        source: 'preconfigured'
       }
     }
 
@@ -239,29 +233,147 @@ export default defineComponent({
         host: 'test.mosquitto.org',
         port: 8080,
         discovered: false,
-        resolved: true
+        resolved: true,
+        source: 'preconfigured'
       }
     }
 
     services.value = { ...defaultServices }
 
+    // --- Computed lists by source ---
+    const preconfiguredList = computed(() =>
+      Object.entries(services.value)
+        .filter(([, s]) => s.source === 'preconfigured' || (!s.source && !s.discovered))
+        .map(([key, service]) => ({ key, service }))
+    )
+
+    const discoveredList = computed(() =>
+      Object.entries(services.value)
+        .filter(([, s]) => s.source === 'discovered' || (!s.source && s.discovered))
+        .map(([key, service]) => ({ key, service }))
+    )
+
+    // Single manual entry (keyed as 'manual')
+    const MANUAL_KEY = 'manual'
+    const manualEntry = computed<ServiceEntry | null>(() =>
+      services.value[MANUAL_KEY] ?? null
+    )
+
+    // --- Helpers ---
+    function friendlyType(type: string): string {
+      if (type.includes('wss')) return 'WSS'
+      if (type.includes('ws')) return 'WS'
+      if (type.includes('mqtts')) return 'MQTTS'
+      return 'MQTT'
+    }
+
+    function isWssType(type: string): boolean {
+      return type.includes('wss') || type.includes('mqtts')
+    }
+
+    function isPreferred(service: ServiceEntry): boolean {
+      if (!preferredBroker.value) return false
+      return preferredBroker.value.name === service.name &&
+             preferredBroker.value.port === service.port
+    }
+
+    function sourceOf(service: ServiceEntry): BrokerSource {
+      if (service.source) return service.source
+      if (service.discovered) return 'discovered'
+      return 'preconfigured'
+    }
+
+    // Show credentials for discovered/manual preferred brokers (may need username/password)
+    const showCredentials = computed(() => {
+      if (!preferredBroker.value) return false
+      const src = sourceOf(preferredBroker.value)
+      return src === 'discovered' || src === 'manual'
+    })
+
+    // Source badge styling
+    const sourceBadgeClass = computed(() => {
+      if (!preferredBroker.value) return 'bg-gray-400'
+      const src = sourceOf(preferredBroker.value)
+      if (src === 'preconfigured') return 'bg-primary'
+      if (src === 'discovered') return 'bg-success'
+      return 'bg-warning'
+    })
+
+    const sourceBadgeLabel = computed(() => {
+      if (!preferredBroker.value) return ''
+      const src = sourceOf(preferredBroker.value)
+      if (src === 'preconfigured') return 'Pre-configured'
+      if (src === 'discovered') return 'Discovered'
+      return 'Manual'
+    })
+
+    // Connection state indicator for preferred broker
+    const stateIndicatorClass = computed(() => {
+      const state = mqttConn.connectionState.value
+      // Only show connection state if the connected broker matches preferred
+      if (
+        mqttConn.connectedBroker.value &&
+        preferredBroker.value &&
+        mqttConn.connectedBroker.value.host === preferredBroker.value.host &&
+        mqttConn.connectedBroker.value.port === preferredBroker.value.port
+      ) {
+        if (state === 'connected') return 'bg-success shadow-[0_0_6px_rgba(76,175,80,0.6)]'
+        if (state === 'trying') return 'bg-warning animate-pulse'
+      }
+      return 'bg-gray-300'
+    })
+
+    // Preferred broker card border styling
+    const preferredCardClasses = computed(() => {
+      const state = mqttConn.connectionState.value
+      const isConnectedBroker =
+        mqttConn.connectedBroker.value &&
+        preferredBroker.value &&
+        mqttConn.connectedBroker.value.host === preferredBroker.value.host &&
+        mqttConn.connectedBroker.value.port === preferredBroker.value.port
+
+      if (isConnectedBroker && state === 'connected') {
+        return 'border-success bg-green-50/50'
+      }
+      if (isConnectedBroker && state === 'trying') {
+        return 'border-warning bg-amber-50/50'
+      }
+      return 'border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50'
+    })
+
+    // --- Manual broker: single entry, silent replace ---
     const addManualService = () => {
       if (manualHost.value && manualPort.value) {
-        const key = `manual-${Date.now()}`
-        services.value[key] = {
-          name: `Manual MQTT (${manualHost.value}:${manualPort.value})`,
+        const entry: ServiceEntry = {
+          name: `${manualHost.value}:${manualPort.value}`,
           type: selectedType.value,
           host: manualHost.value,
           port: parseInt(String(manualPort.value)),
-          discovered: false,  // Explicitly mark as manual (not from mDNS)
-          resolved: true      // Manual brokers are always "resolved"
+          discovered: false,
+          resolved: true,
+          source: 'manual'
         }
+        services.value[MANUAL_KEY] = entry
+        // Also set as preferred broker (reset tested state)
+        preferredBrokerRef.value = { ...entry, tested: false, autoConnect: false }
+        testResult.value = null
         manualHost.value = ''
         manualPort.value = 1883
       }
     }
 
-    const handleServicePress = (service: ServiceEntry) => {
+    const removeManualEntry = () => {
+      // If the manual entry is preferred, clear preferred too
+      if (manualEntry.value && isPreferred(manualEntry.value)) {
+        preferredBrokerRef.value = null
+      }
+      delete services.value[MANUAL_KEY]
+    }
+
+    // --- Navigation ---
+    const navigateToClient = (service: ServiceEntry) => {
+      // Connect in background via shared composable
+      mqttConn.connect(service)
       router.push({
         name: 'MQTTClient',
         query: {
@@ -275,12 +387,40 @@ export default defineComponent({
       })
     }
 
+    // --- Inline test ---
+    const runInlineTest = async () => {
+      if (!preferredBroker.value || isTesting.value) return
+      isTesting.value = true
+      testResult.value = null
+
+      const success = await mqttConn.testConnect(preferredBroker.value)
+      testResult.value = success
+
+      if (success && preferredBroker.value) {
+        preferredBrokerRef.value = { ...preferredBroker.value, tested: true }
+      }
+
+      isTesting.value = false
+    }
+
+    // --- Preferred broker ---
+    const setPreferred = (service: ServiceEntry) => {
+      // Reset tested when switching to a different broker
+      preferredBrokerRef.value = { ...service, tested: false, autoConnect: false }
+      testResult.value = null
+    }
+
+    const clearPreferredBroker = () => {
+      preferredBrokerRef.value = null
+      testResult.value = null
+    }
+
+    // --- mDNS scanning ---
     const onServiceEvent = (arg: { action: ZeroConfAction; service: ZeroConfService } | null) => {
       if (!arg) return
       const { action, service } = arg
       const st = removeLeadingAndTrailingDots(service.type || '')
       const key = `${service.name || 'unknown'}_${service.domain || 'local'}_${st}`
-      console.log(`onServiceEvent: ${action}, "${key}", ${JSON.stringify(service, null, 2)}`)
 
       if (action === 'added') {
         services.value[key] = {
@@ -290,13 +430,12 @@ export default defineComponent({
           port: service.port || 0,
           domain: service.domain,
           discovered: true,
-          resolved: false
+          resolved: false,
+          source: 'discovered'
         }
       } else if (action === 'removed') {
-        if (services.value[key]) {
-          if (services.value[key].discovered) {
-            delete services.value[key]
-          }
+        if (services.value[key]?.discovered) {
+          delete services.value[key]
         }
       } else if (action === 'resolved' && service.port) {
         if (services.value[key]) {
@@ -316,35 +455,23 @@ export default defineComponent({
     }
 
     const startScan = async () => {
-      if (!isCapacitorApp.value) {
-        console.warn('mDNS scanning is only available in Capacitor apps')
-        return
-      }
-
+      if (!isCapacitorApp.value) return
       try {
         isScanning.value = true
         scanError.value = ''
         scanTimeRemaining.value = 3
 
         for (const serviceType of serviceTypes) {
-          await ZeroConf.watch({
-            type: serviceType,
-            domain: 'local.'
-          }, onServiceEvent)
+          await ZeroConf.watch({ type: serviceType, domain: 'local.' }, onServiceEvent)
         }
 
-        // Start 5-second countdown timer
         scanTimer = setInterval(() => {
           scanTimeRemaining.value -= 1
-          if (scanTimeRemaining.value <= 0) {
-            stopScan()
-          }
+          if (scanTimeRemaining.value <= 0) stopScan()
         }, 1000)
-
-        console.log('Started mDNS scanning for MQTT services (5s auto-stop)')
-      } catch (error: any) {
-        console.error('Error starting mDNS scan:', error)
-        scanError.value = `Failed to start scan: ${error.message || 'Unknown error'}`
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Unknown error'
+        scanError.value = `Failed to start scan: ${msg}`
         isScanning.value = false
         scanTimeRemaining.value = 0
       }
@@ -352,217 +479,63 @@ export default defineComponent({
 
     const stopScan = async () => {
       if (!isCapacitorApp.value) return
-
-      // Clear timer
-      if (scanTimer) {
-        clearInterval(scanTimer)
-        scanTimer = null
-      }
+      if (scanTimer) { clearInterval(scanTimer); scanTimer = null }
       scanTimeRemaining.value = 0
-
       try {
         for (const serviceType of serviceTypes) {
-          ZeroConf.unwatch({
-            type: serviceType,
-            domain: 'local.'
-          })
+          ZeroConf.unwatch({ type: serviceType, domain: 'local.' })
         }
         isScanning.value = false
-        scanError.value = ''
-
-        // Keep discovered services visible after scan stops
-        // (Don't delete them - users can still connect to them)
-
-        console.log('Stopped mDNS scanning')
-      } catch (error: any) {
-        console.error('Error stopping mDNS scan:', error)
-        scanError.value = `Failed to stop scan: ${error.message || 'Unknown error'}`
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Unknown error'
+        scanError.value = `Failed to stop scan: ${msg}`
       }
     }
 
     const toggleScan = () => {
-      if (isScanning.value) {
-        stopScan()
-      } else {
-        startScan()
-      }
+      if (isScanning.value) stopScan()
+      else startScan()
     }
 
-    /**
-     * Find preferred broker in current services.
-     * Strategy: Match by instance name and port (as per requirement)
-     * Returns match status and service if found.
-     */
-    const findPreferredBroker = (): BrokerMatchResult => {
-      if (!preferredBroker.value) {
-        return { status: 'not-found', service: null }
-      }
-
-      const preferred = preferredBroker.value
-      const allServices = Object.values(services.value)
-
-      // Match on name + port
-      const matched = allServices.find(s =>
-        s.name === preferred.name &&
-        s.port === preferred.port
-      )
-
-      if (matched) {
-        // Distinguish between manual and discovered services
-        if (matched.discovered === false) {
-          return { status: 'manual', service: matched }
-        }
-        return { status: 'exact', service: matched }
-      }
-
-      return { status: 'not-found', service: null }
-    }
-
-    const setPreferred = (service: ServiceEntry) => {
-      preferredBrokerRef.value = service
-    }
-
-    const clearPreferredBroker = () => {
-      preferredBrokerRef.value = null
-    }
-
-    /**
-     * Auto-connect to preferred broker.
-     * Improved flow: check immediate availability → scan if needed → timeout with error
-     */
-    const handleAutoConnect = async () => {
-      if (!preferredBroker.value || isAutoConnecting.value) return
-
-      try {
-        isAutoConnecting.value = true
-        scanError.value = ''
-
-        // Check if preferred broker is already available
-        let matchResult = findPreferredBroker()
-
-        // If found and resolved (or manual), connect immediately
-        if (matchResult.service && (matchResult.service.resolved || !matchResult.service.discovered)) {
-          handleServicePress(matchResult.service)
-          return
-        }
-
-        // If not found and we're on native platform, start scan
-        if (matchResult.status === 'not-found' && isCapacitorApp.value) {
-          if (!isScanning.value) {
-            await startScan()
-          }
-
-          // Poll for preferred broker with timeout (12 seconds)
-          const maxAttempts = 24 // 24 * 500ms = 12s
-          let attempts = 0
-
-          while (attempts < maxAttempts) {
-            await new Promise(resolve => setTimeout(resolve, 500))
-            matchResult = findPreferredBroker()
-
-            if (matchResult.service && matchResult.service.resolved) {
-              handleServicePress(matchResult.service)
-              return
-            }
-            attempts++
-          }
-
-          scanError.value = 'Preferred broker not found after 12 seconds. Try scanning manually.'
-        } else {
-          scanError.value = 'Preferred broker not available. mDNS scanning requires the native app.'
-        }
-      } finally {
-        isAutoConnecting.value = false
-      }
-    }
-
-    // Startup discovery: scan for preferred broker if it's not found
+    // Startup: scan for preferred broker if it's an mDNS-discovered one
     watch(preferredBrokerRef, (broker) => {
       if (broker && !hasTriggeredStartupScan && broker.discovered === true && isCapacitorApp.value && !isScanning.value) {
-        // Preferred broker exists and is a discovered (mDNS) broker - scan to find it
-        // Note: Manual brokers (discovered === false) skip this scan
         hasTriggeredStartupScan = true
-        const matchResult = findPreferredBroker()
-        if (matchResult.status === 'not-found') {
-          console.log('Preferred broker not found, starting discovery scan...')
+        // Check if broker is already in services list
+        const found = Object.values(services.value).some(
+          s => s.name === broker.name && s.port === broker.port
+        )
+        if (!found) {
           startScan()
         }
       }
     }, { immediate: true })
 
-    // Computed properties for reactive UI state
-    const preferredBrokerMatchResult = computed<BrokerMatchResult>(() => findPreferredBroker())
-
-    const preferredBrokerService = computed<ServiceEntry | null>(() =>
-      preferredBrokerMatchResult.value.service
-    )
-
-    const preferredBrokerStatus = computed<'found' | 'manual' | 'searching' | 'not-found'>(() => {
-      if (!preferredBroker.value) return 'not-found'
-
-      // Manual brokers get their own status (orange badge)
-      if (preferredBroker.value.discovered === false) {
-        return 'manual'
-      }
-
-      const matchResult = preferredBrokerMatchResult.value
-
-      // If found via mDNS, show as found
-      if (matchResult.service && matchResult.service.resolved) {
-        return 'found'
-      }
-
-      // If scanning, show as searching
-      if (isScanning.value || isAutoConnecting.value) {
-        return 'searching'
-      }
-
-      // Otherwise not found
-      return 'not-found'
-    })
-
-    // Update preferred broker with fresh network info when discovered via mDNS
-    watch(preferredBrokerMatchResult, (result) => {
-      if (result.service && result.service.resolved && preferredBroker.value && result.service.discovered) {
+    // Update preferred broker network info when re-discovered via mDNS
+    watch(() => Object.values(services.value), (allServices) => {
+      if (!preferredBroker.value || !preferredBroker.value.discovered) return
+      const match = allServices.find(
+        s => s.name === preferredBroker.value!.name && s.port === preferredBroker.value!.port && s.resolved
+      )
+      if (match) {
         const current = preferredBroker.value
-
-        // Only update if values actually changed (prevents infinite loop)
-        const hostsMatch = current.host === result.service.host
-        const ipv4Match = JSON.stringify(current.ipv4Addresses || []) === JSON.stringify(result.service.ipv4Addresses || [])
-        const ipv6Match = JSON.stringify(current.ipv6Addresses || []) === JSON.stringify(result.service.ipv6Addresses || [])
-        const alreadyResolved = current.resolved === true && current.discovered === true
-
-        if (!hostsMatch || !ipv4Match || !ipv6Match || !alreadyResolved) {
-          console.log('Updating preferred broker with fresh network info')
+        if (current.host !== match.host ||
+            JSON.stringify(current.ipv4Addresses) !== JSON.stringify(match.ipv4Addresses)) {
           preferredBrokerRef.value = {
             ...current,
-            host: result.service.host,
-            ipv4Addresses: result.service.ipv4Addresses,
-            ipv6Addresses: result.service.ipv6Addresses,
+            host: match.host,
+            ipv4Addresses: match.ipv4Addresses,
+            ipv6Addresses: match.ipv6Addresses,
             resolved: true,
             discovered: true
           }
         }
       }
-    })
+    }, { deep: true })
 
-    // Watch for preferred broker being found and auto-connect if enabled
-    watch(preferredBrokerStatus, (newStatus) => {
-      // Auto-connect for both 'found' (mDNS) and 'manual' brokers
-      if ((newStatus === 'found' || newStatus === 'manual') && preferredBroker.value?.autoConnect && !isAutoConnecting.value) {
-        const brokerToConnect = newStatus === 'found' ? preferredBrokerService.value : preferredBroker.value
-        if (brokerToConnect) {
-          handleServicePress(brokerToConnect)
-        }
-      }
-    })
-
-    // Cleanup timer on component unmount
+    // Cleanup on unmount
     onUnmounted(() => {
-      if (scanTimer) {
-        clearInterval(scanTimer)
-        scanTimer = null
-      }
+      if (scanTimer) { clearInterval(scanTimer); scanTimer = null }
     })
 
     return {
@@ -575,23 +548,50 @@ export default defineComponent({
       scanError,
       scanTimeRemaining,
       preferredBroker,
-      preferredBrokerStatus,
-      preferredBrokerService,
-      isAutoConnecting,
+      isTesting,
+      testResult,
+      preconfiguredList,
+      discoveredList,
+      manualEntry,
+      showCredentials,
+      sourceBadgeClass,
+      sourceBadgeLabel,
+      stateIndicatorClass,
+      preferredCardClasses,
+      friendlyType,
+      isWssType,
+      isPreferred,
       addManualService,
-      handleServicePress,
+      removeManualEntry,
+      navigateToClient,
+      runInlineTest,
       toggleScan,
       setPreferred,
-      clearPreferredBroker,
-      handleAutoConnect
+      clearPreferredBroker
     }
   }
 })
 </script>
 
 <style scoped>
-.preferred-broker-card {
-  border: 3px solid #FFD700 !important;
-  box-shadow: 0 0 0 1px #FFD700, 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+@reference "../style.css";
+
+.broker-row {
+  @apply flex items-center justify-between gap-2 px-3 py-2 bg-white rounded-lg border border-gray-100 transition-colors;
+}
+.broker-row:hover {
+  border-color: rgba(33, 150, 243, 0.2);
+}
+.broker-row-preferred {
+  border: 2px solid #FFD700 !important;
+  box-shadow: 0 0 0 1px #FFD700;
+}
+.btn-icon {
+  @apply w-8 h-8 flex items-center justify-center rounded-full transition-colors;
+  min-width: 32px;
+  min-height: 32px;
+}
+.btn-icon:hover {
+  background-color: #f3f4f6;
 }
 </style>
