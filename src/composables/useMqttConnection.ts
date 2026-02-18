@@ -229,7 +229,7 @@ function publish(topic: string, payload: string): Promise<void> {
  * Returns true on success, false on failure. Does not touch the main connection state
  * if a different broker is already connected — uses a separate temporary client.
  */
-async function testConnect(broker: ServiceEntry): Promise<boolean> {
+async function testConnect(broker: ServiceEntry, timeoutMs: number = 15000): Promise<boolean> {
   const url = buildConnectUrl(broker)
   const testTopic = `__test/${Math.random().toString(16).substr(2, 8)}`
   const testPayload = `test-${Date.now()}`
@@ -237,7 +237,7 @@ async function testConnect(broker: ServiceEntry): Promise<boolean> {
   const options: Record<string, unknown> = {
     clientId: `mqtt_test_${Math.random().toString(16).substr(2, 8)}`,
     clean: true,
-    connectTimeout: 5000,
+    connectTimeout: timeoutMs,
     reconnectPeriod: 0
   }
 
@@ -259,7 +259,7 @@ async function testConnect(broker: ServiceEntry): Promise<boolean> {
 
     const testClient = mqtt.connect(url, options)
 
-    const timer = setTimeout(() => finish(false), 15000)
+    const timer = setTimeout(() => finish(false), timeoutMs)
 
     testClient.on('connect', () => {
       testClient.subscribe(testTopic, (err) => {
