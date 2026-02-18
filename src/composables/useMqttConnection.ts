@@ -259,7 +259,7 @@ async function testConnect(broker: ServiceEntry): Promise<boolean> {
 
     const testClient = mqtt.connect(url, options)
 
-    const timer = setTimeout(() => finish(false), 8000)
+    const timer = setTimeout(() => finish(false), 15000)
 
     testClient.on('connect', () => {
       testClient.subscribe(testTopic, (err) => {

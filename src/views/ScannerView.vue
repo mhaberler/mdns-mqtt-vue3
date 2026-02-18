@@ -55,7 +55,7 @@
       <!-- Action buttons row -->
       <div class="flex gap-2 mt-3">
         <button @click="runInlineTest" :disabled="isTesting" class="btn text-xs py-1.5 px-3 btn-warning flex-1">
-          {{ isTesting ? 'Testing...' : 'Test' }}
+          {{ isTesting ? `Testing (${testTimeRemaining}s)` : 'Test' }}
         </button>
         <button @click="navigateToClient(preferredBroker)" class="btn text-xs py-1.5 px-3 btn-primary flex-1">
           Open Client
@@ -209,6 +209,8 @@ export default defineComponent({
     // Inline test state
     const isTesting = ref<boolean>(false)
     const testResult = ref<boolean | null>(null)
+    const testTimeRemaining = ref<number>(0)
+    let testTimer: ReturnType<typeof setInterval> | null = null
 
     // Shared state
     const { preferredBrokerRef } = useAppState()
@@ -399,9 +401,24 @@ export default defineComponent({
       if (!preferredBroker.value || isTesting.value) return
       isTesting.value = true
       testResult.value = null
+      testTimeRemaining.value = 15
+
+      if (testTimer) clearInterval(testTimer)
+      testTimer = setInterval(() => {
+        testTimeRemaining.value -= 1
+        if (testTimeRemaining.value <= 0 && testTimer) {
+          clearInterval(testTimer)
+          testTimer = null
+        }
+      }, 1000)
 
       const success = await mqttConn.testConnect(preferredBroker.value)
+      if (testTimer) {
+        clearInterval(testTimer)
+        testTimer = null
+      }
       testResult.value = success
+      testTimeRemaining.value = 0
 
       if (success && preferredBroker.value) {
         preferredBrokerRef.value = { ...preferredBroker.value, tested: true }
@@ -549,6 +566,7 @@ export default defineComponent({
     // Cleanup on unmount
     onUnmounted(() => {
       if (scanTimer) { clearInterval(scanTimer); scanTimer = null }
+      if (testTimer) { clearInterval(testTimer); testTimer = null }
     })
 
     // Stop mDNS scan when app goes to background
@@ -571,6 +589,7 @@ export default defineComponent({
       preferredBroker,
       isTesting,
       testResult,
+      testTimeRemaining,
       preconfiguredList,
       discoveredList,
       manualEntry,
