@@ -146,6 +146,7 @@ export default defineComponent({
     }
 
     onMounted(() => {
+      mqttConn.clearMessages()
       mqttConn.addMessage('system', `Configured for ${serviceName.value}`)
       // If not already connected, auto-connect
       if (mqttConn.connectionState.value === 'disconnected') {

@@ -64,6 +64,10 @@ function addMessage(topic: string, payload: string) {
   messages.value = [newMsg, ...messages.value].slice(0, MESSAGE_CAP)
 }
 
+function clearMessages() {
+  messages.value = []
+}
+
 function cleanup() {
   if (connectionTimeout) {
     clearTimeout(connectionTimeout)
@@ -76,6 +80,7 @@ function cleanup() {
     } catch (_) { /* ignore */ }
     mqttClient = null
   }
+  // clearMessages()
 }
 
 function connect(broker: ServiceEntry) {
@@ -277,10 +282,6 @@ async function testConnect(broker: ServiceEntry, timeoutMs: number = 15000): Pro
     testClient.on('error', () => finish(false))
     testClient.on('close', () => finish(false))
   })
-}
-
-function clearMessages() {
-  messages.value = []
 }
 
 // --- Computed helpers ---
