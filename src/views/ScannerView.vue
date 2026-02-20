@@ -196,7 +196,7 @@ export default defineComponent({
     const router = useRouter()
     const services = ref<Record<string, ServiceEntry>>({})
     const manualHost = ref<string>('')
-    const manualPort = ref<number>(1883)
+    const manualPort = ref<number>(8883)
     const selectedType = ref<string>('_mqtt-ws._tcp.')
     const manualRejectUnauthorized = ref<boolean>(true)
     const isScanning = ref<boolean>(false)
@@ -367,7 +367,7 @@ export default defineComponent({
         preferredBrokerRef.value = { ...entry, tested: false, autoConnect: false }
         testResult.value = null
         manualHost.value = ''
-        manualPort.value = 1883
+        manualPort.value = 18883
       }
     }
 
