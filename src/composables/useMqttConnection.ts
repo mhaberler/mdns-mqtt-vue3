@@ -110,8 +110,8 @@ function connect(broker: ServiceEntry) {
     const options: Record<string, unknown> = {
       clientId: `mqtt_vue_${Math.random().toString(16).substr(2, 8)}`,
       clean: true,
-      connectTimeout: 10000,
-      reconnectPeriod: 0
+      connectTimeout: 30000,
+      reconnectPeriod: 3000
     }
 
     if (broker.username) options.username = broker.username
