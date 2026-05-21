@@ -11,7 +11,7 @@
         "@capacitor/core": "^8.3.4",
         "@capacitor/ios": "^8.3.4",
         "@capacitor/preferences": "^8.0.1",
-        "@mhaberler/capacitor-zeroconf-nsd": "^5.0.3",
+        "@mhaberler/capacitor-zeroconf-nsd": "5.0.4",
         "@tailwindcss/vite": "^4.3.0",
         "buffer": "^6.0.3",
         "crypto-browserify": "^3.12.1",
@@ -95,7 +95,7 @@
 
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
 
-    "@mhaberler/capacitor-zeroconf-nsd": ["@mhaberler/capacitor-zeroconf-nsd@5.0.3", "", { "peerDependencies": { "@capacitor/core": ">=7.0.0", "bonjour": "^3.5.0" } }, "sha512-0QR/xwvacuqlsscIiYFsg2pgL5oGTGKcLOac0J8PGYbCdqfdQluwGXi9csEVcoAcXAPq77SDDhL9me/YRgcmUg=="],
+    "@mhaberler/capacitor-zeroconf-nsd": ["@mhaberler/capacitor-zeroconf-nsd@5.0.4", "", { "dependencies": { "@mhaberler/capacitor-zeroconf-nsd": "^5.0.3" }, "peerDependencies": { "@capacitor/core": ">=7.0.0", "bonjour": "^3.5.0" } }, "sha512-qkA2ypHF4IIefGIdkY/QZHeHk73DynkoRUVz75z1Qe2CN5qjqJgXDo9I9S41dbVgQV+68HCDvs6sAu5We/NgdQ=="],
 
     "@napi-rs/wasm-runtime": ["@napi-rs/wasm-runtime@1.1.4", "", { "dependencies": { "@tybys/wasm-util": "^0.10.1" }, "peerDependencies": { "@emnapi/core": "^1.7.1", "@emnapi/runtime": "^1.7.1" } }, "sha512-3NQNNgA1YSlJb/kMH1ildASP9HW7/7kYnRI2szWJaofaS1hWmbGI4H+d3+22aGzXXN9IJ+n+GiFVcGipJP18ow=="],
 

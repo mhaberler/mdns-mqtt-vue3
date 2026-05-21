@@ -6,7 +6,7 @@ PODS:
   - CapacitorCordova (8.3.4)
   - CapacitorPreferences (8.0.1):
     - Capacitor
-  - MhaberlerCapacitorZeroconfNsd (5.0.3):
+  - MhaberlerCapacitorZeroconfNsd (5.0.4):
     - Capacitor
 
 DEPENDENCIES:
@@ -33,7 +33,7 @@ SPEC CHECKSUMS:
   CapacitorApp: 449ffe26375e96f8aaaee625ac6e01e5c57c8650
   CapacitorCordova: c07921bdcfec6f691bae22274446b4d606ebf6a4
   CapacitorPreferences: cca2021f386efb75947c850334447d9ff22b14f1
-  MhaberlerCapacitorZeroconfNsd: 88705b7013c1f8da0cdc45b48323da4c54b91e78
+  MhaberlerCapacitorZeroconfNsd: 89f5b79b8b83bd9277aa877bb9ffed9880cdd1af
 
 PODFILE CHECKSUM: 5f2040d116a374a8b1e12db468c791d108e2fc9a
 
