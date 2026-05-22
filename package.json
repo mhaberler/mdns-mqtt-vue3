@@ -36,7 +36,10 @@
     "run-on-galaxy-a15": "bunx cap run android --target RF8Y109W1JB",
     "run-on-galaxy-pro-tab10": "bunx cap run android --target R52T40AW12D",
     "run-on-iphone": "bunx cap run ios --target 00008140-0002692C1E79801C",
-    "run-on-ipad": "bunx cap run ios --target 7469941401580df80750b83afac3dec9bde0309a"
+    "run-on-ipad": "bunx cap run ios --target 7469941401580df80750b83afac3dec9bde0309a",
+    "apk:debug": "bun run build && bun run sync && (cd android && ./gradlew assembleDebug) && echo \"APK: android/app/build/outputs/apk/debug/app-debug.apk\"",
+    "apk:debug:install": "adb install -r android/app/build/outputs/apk/debug/app-debug.apk",
+    "apk:debug:all": "bun run apk:debug && bun run apk:debug:install"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",
