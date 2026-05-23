@@ -170,8 +170,9 @@
 
       <!-- Empty state -->
       <div v-if="Object.keys(services).length === 0 && !manualEntry" class="py-8 text-center text-gray-400 text-sm">
-        <p>No brokers available. Discover via mDNS or add one manually.</p>
-        <p class="text-xs mt-1 italic">Common ports: 1883 (MQTT), 8883 (MQTTS), 9001 (WS)</p>
+        <p>No brokers available.</p>
+        <p class="text-xs mt-1">Tap the pre-configured <span class="font-semibold">test.mosquitto.org</span> entry above to try the app, run <span class="font-semibold">Discover</span> on a LAN with MQTT brokers, or add one manually.</p>
+        <p class="text-xs mt-1 italic">Common ports: 1883 (MQTT), 8883 (MQTTS), 8081/9001 (WSS/WS)</p>
       </div>
     </div>
   </div>

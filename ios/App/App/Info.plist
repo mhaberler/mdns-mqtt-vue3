@@ -28,8 +28,13 @@
 	<string>Main</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
-		<string>armv7</string>
+		<string>arm64</string>
 	</array>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
@@ -46,7 +51,7 @@
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>This app uses the local network to discover MQTT brokers using mDNS/Bonjour.</string>
+	<string>Used to discover MQTT brokers on your local network via Bonjour/mDNS and to connect to user-selected brokers for publish/subscribe.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_mqtt._tcp</string>
