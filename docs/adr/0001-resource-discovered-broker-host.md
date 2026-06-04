@@ -38,6 +38,9 @@ layer and `App.vue`), and `connect()` used the persisted host directly.
 - **Auto-connect for a discovered preferred broker is armed, not fired.** `App.vue`
   watches `discoveredBrokers` and calls `connect()` only once a matching identity
   appears. No stale-host fallback for discovered brokers.
+- **Manual refresh.** A "Refresh" button restarts the watch from a clean slate (stop →
+  clear `discoveredBrokers` → start). NSD/Bonjour `removed` events are slow or unreliable,
+  so a vanished broker can linger indefinitely; clearing is what actually drops it.
 - **Visible timeout.** If no match appears within a ~12s grace period, the preferred
   card shows "Not found on this network"; the scan keeps running so a later appearance
   still connects.

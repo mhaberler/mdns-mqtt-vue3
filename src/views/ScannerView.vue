@@ -4,10 +4,13 @@
     <div class="flex items-center justify-between mb-3">
       <h1 class="text-lg font-bold text-gray-800">Broker Configuration</h1>
       <div class="flex items-center gap-2">
-        <span v-if="isCapacitorApp" class="inline-flex items-center gap-1.5 text-[10px] text-gray-500">
-          <span class="w-1.5 h-1.5 rounded-full bg-success animate-pulse"></span>
-          Scanning…
-        </span>
+        <button
+          v-if="isCapacitorApp"
+          @click="refreshScan"
+          :disabled="isRefreshing"
+          class="btn text-sm py-1.5 px-3 btn-success">
+          {{ isRefreshing ? 'Refreshing…' : 'Refresh' }}
+        </button>
         <span v-else class="text-[10px] text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-200">
           mDNS: native only
         </span>
@@ -208,7 +211,17 @@ export default defineComponent({
     // Shared state
     const { preferredBrokerRef, manualBrokersRef } = useAppState()
     const mqttConn = useMqttConnection()
-    const { discoveredBrokers } = useMqttDiscovery()
+    const { discoveredBrokers, refresh } = useMqttDiscovery()
+    const isRefreshing = ref<boolean>(false)
+
+    // Restart the mDNS scan from a clean slate to drop vanished brokers (NSD `removed`
+    // events are slow/unreliable). Brief visual feedback while the list repopulates.
+    const refreshScan = async () => {
+      if (isRefreshing.value) return
+      isRefreshing.value = true
+      await refresh()
+      setTimeout(() => { isRefreshing.value = false }, 800)
+    }
 
     const preferredBroker = preferredBrokerRef
 
@@ -486,6 +499,8 @@ export default defineComponent({
       manualPort,
       selectedType,
       isCapacitorApp,
+      isRefreshing,
+      refreshScan,
       preferredBroker,
       preferredNotFound,
       isTesting,

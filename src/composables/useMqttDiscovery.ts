@@ -77,6 +77,17 @@ async function stopScan() {
 }
 
 /**
+ * Restart discovery from a clean slate: stop the watch, drop all currently-known
+ * brokers, then start again. NSD/Bonjour `removed` events are slow or unreliable, so a
+ * vanished broker can linger indefinitely; clearing is what actually refreshes the list.
+ */
+async function refresh() {
+  await stopScan()
+  discoveredBrokers.value = {}
+  await startScan()
+}
+
+/**
  * Look up a broker's current host from the live discovered list by its broker identity
  * (instance name + service type). Returns null if the broker is not currently discovered
  * (or not resolved yet). The host returned is whatever the network currently advertises —
@@ -109,6 +120,7 @@ export function useMqttDiscovery() {
     discoveredBrokers: discoveredBrokers as Ref<Record<string, ServiceEntry>>,
     liveHostFor,
     startScan,
-    stopScan
+    stopScan,
+    refresh
   }
 }
