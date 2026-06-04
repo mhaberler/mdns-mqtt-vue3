@@ -2,6 +2,7 @@
 import { ref, computed, type Ref } from 'vue'
 import mqtt, { type MqttClient } from 'mqtt'
 import type { ServiceEntry } from './useAppState'
+import { useMqttDiscovery } from './useMqttDiscovery'
 
 export type ConnectionState = 'disconnected' | 'trying' | 'connected'
 
@@ -83,7 +84,28 @@ function cleanup() {
   // clearMessages()
 }
 
-function connect(broker: ServiceEntry) {
+// Derive how the broker was sourced. Query-param-reconstructed brokers carry only
+// `discovered` (no `source`), so fall back to it — matches sourceOf() in ScannerView.
+function derivedSource(broker: ServiceEntry): string {
+  if (broker.source) return broker.source
+  if (broker.discovered) return 'discovered'
+  return 'preconfigured'
+}
+
+// For a discovered broker, the persisted host is volatile (Android NSD yields IPs that
+// change between runs). Re-source host+port from the live discovered list by broker
+// identity (name + type). Returns the broker unchanged if not discovered, or if no live
+// match exists (caller proceeds with whatever host it has).
+function withLiveHost(broker: ServiceEntry): ServiceEntry {
+  if (derivedSource(broker) !== 'discovered') return broker
+  const live = useMqttDiscovery().liveHostFor(broker.name, broker.type)
+  if (!live) return broker
+  return { ...broker, host: live.host, port: live.port }
+}
+
+function connect(brokerArg: ServiceEntry) {
+  const broker = withLiveHost(brokerArg)
+
   // If already connected to the same broker, do nothing
   if (
     mqttClient &&

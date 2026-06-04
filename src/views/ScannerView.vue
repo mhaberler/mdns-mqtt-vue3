@@ -1,16 +1,14 @@
 <template>
   <div class="w-full min-h-screen p-3 md:p-6 bg-gray-50">
-    <!-- Header row: title + scan button -->
+    <!-- Header row: title + scan status -->
     <div class="flex items-center justify-between mb-3">
       <h1 class="text-lg font-bold text-gray-800">Broker Configuration</h1>
       <div class="flex items-center gap-2">
-        <button
-          v-if="isCapacitorApp"
-          @click="toggleScan"
-          :class="['btn text-sm py-1.5 px-3', isScanning ? 'btn-danger' : 'btn-success']">
-          {{ isScanning ? `Scan (${scanTimeRemaining}s)` : 'Discover' }}
-        </button>
-        <span v-if="!isCapacitorApp" class="text-[10px] text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-200">
+        <span v-if="isCapacitorApp" class="inline-flex items-center gap-1.5 text-[10px] text-gray-500">
+          <span class="w-1.5 h-1.5 rounded-full bg-success animate-pulse"></span>
+          Scanning…
+        </span>
+        <span v-else class="text-[10px] text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-200">
           mDNS: native only
         </span>
       </div>
@@ -40,6 +38,10 @@
             <span>{{ preferredBroker.host }}:{{ preferredBroker.port }}</span>
             <span class="bg-gray-100 px-1.5 py-0.5 rounded text-[10px]">{{ friendlyType(preferredBroker.type) }}</span>
           </div>
+          <!-- Not found on this network (discovered broker not yet seen) -->
+          <div v-if="preferredNotFound" class="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded">
+            Not found on this network
+          </div>
           <!-- Credential fields (shown for discovered/manual when WSS or user wants) -->
           <div v-if="showCredentials" class="mt-2 flex flex-wrap gap-2">
             <input v-model="preferredBroker.username" placeholder="Username" class="flex-1 min-w-[100px] px-2 py-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-primary outline-none">
@@ -68,11 +70,6 @@
       <div v-if="testResult !== null" class="mt-2 text-xs font-semibold px-2 py-1 rounded" :class="testResult ? 'bg-success/10 text-success' : 'bg-error/10 text-error'">
         {{ testResult ? 'Test passed — broker is reachable' : 'Test failed — check host, port, and credentials' }}
       </div>
-    </div>
-
-    <!-- Error display -->
-    <div v-if="scanError" class="mb-3 p-2 bg-red-50 text-red-700 rounded-lg text-xs border border-red-100">
-      {{ scanError }}
     </div>
 
     <!-- Broker list -->
@@ -183,14 +180,13 @@
 import { defineComponent, ref, onUnmounted, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Capacitor } from '@capacitor/core'
-import { ZeroConf, type ZeroConfService, type ZeroConfAction } from '@mhaberler/capacitor-zeroconf-nsd'
 import { useAppState, type ServiceEntry, type BrokerSource } from '../composables/useAppState'
 import { useMqttConnection } from '../composables/useMqttConnection'
-import { useAppLifecycle } from '../composables/useAppLifecycle'
+import { useMqttDiscovery } from '../composables/useMqttDiscovery'
 
-function removeLeadingAndTrailingDots(str: string): string {
-  return str.replace(/^\.+|\.+$/g, '')
-}
+// Grace period (ms) before a preferred discovered broker is marked "Not found on this
+// network". The scan keeps running, so a later appearance still connects.
+const NOT_FOUND_GRACE_MS = 12000
 
 export default defineComponent({
   name: 'ScannerView',
@@ -201,12 +197,7 @@ export default defineComponent({
     const manualPort = ref<number>(8883)
     const selectedType = ref<string>('_mqtt-ws._tcp.')
     const manualRejectUnauthorized = ref<boolean>(true)
-    const isScanning = ref<boolean>(false)
     const isCapacitorApp = ref<boolean>(Capacitor.isNativePlatform())
-    const scanError = ref<string>('')
-    const scanTimeRemaining = ref<number>(0)
-    let scanTimer: ReturnType<typeof setInterval> | null = null
-    let hasTriggeredStartupScan = false
 
     // Inline test state
     const isTesting = ref<boolean>(false)
@@ -217,11 +208,9 @@ export default defineComponent({
     // Shared state
     const { preferredBrokerRef, manualBrokersRef } = useAppState()
     const mqttConn = useMqttConnection()
+    const { discoveredBrokers } = useMqttDiscovery()
 
     const preferredBroker = preferredBrokerRef
-
-    // Service types to scan for
-    const serviceTypes: string[] = ['_mqtt-ws._tcp.', '_mqtt-wss._tcp.']
 
     // --- Pre-configured brokers ---
     const defaultServices: Record<string, ServiceEntry> = {
@@ -257,9 +246,9 @@ export default defineComponent({
         .map(([key, service]) => ({ key, service }))
     )
 
+    // Discovered brokers come from the shared discovery singleton (live mDNS list).
     const discoveredList = computed(() =>
-      Object.entries(services.value)
-        .filter(([, s]) => s.source === 'discovered' || (!s.source && s.discovered))
+      Object.entries(discoveredBrokers.value)
         .map(([key, service]) => ({ key, service }))
     )
 
@@ -449,142 +438,46 @@ export default defineComponent({
       testResult.value = null
     }
 
-    // --- mDNS scanning ---
-    const onServiceEvent = (arg: { action: ZeroConfAction; service: ZeroConfService } | null) => {
-      if (!arg) return
-      const { action, service } = arg
-      const st = removeLeadingAndTrailingDots(service.type || '')
-      const key = `${service.name || 'unknown'}_${service.domain || 'local'}_${st}`
+    // --- Preferred discovered broker: "Not found on this network" status ---
+    // A discovered preferred broker connects reactively (handled in App.vue) once its
+    // identity reappears in the live list. If it hasn't appeared within the grace period,
+    // surface a non-blocking "not found" status. The scan keeps running regardless.
+    const preferredNotFound = ref<boolean>(false)
+    let notFoundTimer: ReturnType<typeof setTimeout> | null = null
 
-      if (action === 'added') {
-        services.value[key] = {
-          name: service.name || `${service.type ?? 'service'} Service`,
-          type: service.type || '',
-          host: service.hostname || service.ipv4Addresses?.[0] || service.ipv6Addresses?.[0] || 'Unknown',
-          port: service.port || 0,
-          domain: service.domain,
-          discovered: true,
-          resolved: false,
-          source: 'discovered'
-        }
-      } else if (action === 'removed') {
-        if (services.value[key]?.discovered) {
-          delete services.value[key]
-        }
-      } else if (action === 'resolved' && service.port) {
-        if (services.value[key]) {
-          services.value[key] = {
-            ...services.value[key],
-            name: service.name || services.value[key].name,
-            host: service.hostname || service.ipv4Addresses?.[0] || service.ipv6Addresses?.[0] || services.value[key].host,
-            port: service.port || services.value[key].port,
-            domain: service.domain || services.value[key].domain,
-            resolved: true,
-            txtRecord: service.txtRecord || {},
-            ipv4Addresses: service.ipv4Addresses || [],
-            ipv6Addresses: service.ipv6Addresses || []
-          }
-        }
-      }
+    function isDiscoveredBroker(b: ServiceEntry): boolean {
+      return b.source ? b.source === 'discovered' : !!b.discovered
     }
 
-    const startScan = async () => {
-      if (!isCapacitorApp.value) return
-      try {
-        isScanning.value = true
-        scanError.value = ''
-        scanTimeRemaining.value = 3
-
-        for (const serviceType of serviceTypes) {
-          await ZeroConf.watch({ type: serviceType, domain: 'local.' }, onServiceEvent)
-        }
-
-        scanTimer = setInterval(() => {
-          scanTimeRemaining.value -= 1
-          if (scanTimeRemaining.value <= 0) stopScan()
-        }, 1000)
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'Unknown error'
-        scanError.value = `Failed to start scan: ${msg}`
-        isScanning.value = false
-        scanTimeRemaining.value = 0
-      }
+    function preferredIsLive(): boolean {
+      const b = preferredBroker.value
+      if (!b) return false
+      return Object.values(discoveredBrokers.value).some(
+        s => s.name === b.name && s.type === b.type && s.resolved
+      )
     }
 
-    const stopScan = async () => {
-      if (!isCapacitorApp.value) return
-      if (scanTimer) { clearInterval(scanTimer); scanTimer = null }
-      scanTimeRemaining.value = 0
-      try {
-        for (const serviceType of serviceTypes) {
-          ZeroConf.unwatch({ type: serviceType, domain: 'local.' })
-        }
-        isScanning.value = false
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'Unknown error'
-        scanError.value = `Failed to stop scan: ${msg}`
-      }
-    }
-
-    const toggleScan = () => {
-      if (isScanning.value) stopScan()
-      else startScan()
-    }
-
-    // Startup: scan for preferred broker if it's an mDNS-discovered one, or if no preferred broker exists
+    // Arm/disarm the not-found grace timer based on the preferred broker.
     watch(preferredBrokerRef, (broker) => {
-      if (!hasTriggeredStartupScan && isCapacitorApp.value && !isScanning.value) {
-        if (broker && broker.discovered === true) {
-          // Scan if preferred broker is discovered but not in services list
-          hasTriggeredStartupScan = true
-          const found = Object.values(services.value).some(
-            s => s.name === broker.name && s.port === broker.port
-          )
-          if (!found) {
-            startScan()
-          }
-        } else if (!broker) {
-          // Auto-scan if no preferred broker is set
-          hasTriggeredStartupScan = true
-          startScan()
-        }
+      if (notFoundTimer) { clearTimeout(notFoundTimer); notFoundTimer = null }
+      preferredNotFound.value = false
+      if (broker && isDiscoveredBroker(broker) && isCapacitorApp.value) {
+        notFoundTimer = setTimeout(() => {
+          if (!preferredIsLive()) preferredNotFound.value = true
+        }, NOT_FOUND_GRACE_MS)
       }
     }, { immediate: true })
 
-    // Update preferred broker network info when re-discovered via mDNS
-    watch(() => Object.values(services.value), (allServices) => {
-      if (!preferredBroker.value || !preferredBroker.value.discovered) return
-      const match = allServices.find(
-        s => s.name === preferredBroker.value!.name && s.port === preferredBroker.value!.port && s.resolved
-      )
-      if (match) {
-        const current = preferredBroker.value
-        if (current.host !== match.host ||
-            JSON.stringify(current.ipv4Addresses) !== JSON.stringify(match.ipv4Addresses)) {
-          preferredBrokerRef.value = {
-            ...current,
-            host: match.host,
-            ipv4Addresses: match.ipv4Addresses,
-            ipv6Addresses: match.ipv6Addresses,
-            resolved: true,
-            discovered: true
-          }
-        }
+    // Clear the not-found flag as soon as the preferred broker appears in the live list.
+    watch(discoveredBrokers, () => {
+      if (preferredNotFound.value && preferredIsLive()) {
+        preferredNotFound.value = false
       }
     }, { deep: true })
 
-    // Cleanup on unmount
     onUnmounted(() => {
-      if (scanTimer) { clearInterval(scanTimer); scanTimer = null }
       if (testTimer) { clearInterval(testTimer); testTimer = null }
-    })
-
-    // Stop mDNS scan when app goes to background
-    const { isActive } = useAppLifecycle()
-    watch(isActive, (active) => {
-      if (!active && isScanning.value) {
-        stopScan()
-      }
+      if (notFoundTimer) { clearTimeout(notFoundTimer); notFoundTimer = null }
     })
 
     return {
@@ -592,11 +485,9 @@ export default defineComponent({
       manualHost,
       manualPort,
       selectedType,
-      isScanning,
       isCapacitorApp,
-      scanError,
-      scanTimeRemaining,
       preferredBroker,
+      preferredNotFound,
       isTesting,
       testResult,
       testTimeRemaining,
@@ -616,7 +507,6 @@ export default defineComponent({
       navigateToClient,
       runInlineTest,
       manualRejectUnauthorized,
-      toggleScan,
       setPreferred,
       clearPreferredBroker
     }
