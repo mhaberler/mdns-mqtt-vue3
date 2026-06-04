@@ -127,23 +127,24 @@
       <!-- Manual broker section -->
       <div>
         <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-1 mt-2 mb-1">Manual</div>
-        <!-- Existing manual broker (if any) -->
-        <div v-if="manualEntry" class="broker-row" :class="{ 'broker-row-preferred': isPreferred(manualEntry) }">
+        <!-- Persisted manual brokers -->
+        <div v-for="entry in manualList" :key="entry.key"
+          class="broker-row" :class="{ 'broker-row-preferred': isPreferred(entry.service) }">
           <div class="flex items-center gap-2 flex-1 min-w-0">
-            <span class="font-semibold text-sm text-gray-800 truncate">{{ manualEntry.name }}</span>
-            <span class="text-[10px] text-gray-400 font-mono flex-shrink-0">{{ manualEntry.host }}:{{ manualEntry.port }}</span>
+            <span class="font-semibold text-sm text-gray-800 truncate">{{ entry.service.name }}</span>
+            <span class="text-[10px] text-gray-400 font-mono flex-shrink-0">{{ entry.service.host }}:{{ entry.service.port }}</span>
           </div>
           <div class="flex gap-1 flex-shrink-0">
-            <button @click="navigateToClient(manualEntry)" class="btn-icon text-primary" title="Open client">
+            <button @click="navigateToClient(entry.service)" class="btn-icon text-primary" title="Open client">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
             </button>
-            <button v-if="!isPreferred(manualEntry)" @click="setPreferred(manualEntry)" class="btn-icon text-warning" title="Set preferred">
+            <button v-if="!isPreferred(entry.service)" @click="setPreferred(entry.service)" class="btn-icon text-warning" title="Set preferred">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
             </button>
             <span v-else class="btn-icon text-amber-500">
               <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
             </span>
-            <button @click="removeManualEntry" class="btn-icon text-red-400 hover:text-red-600" title="Remove">
+            <button @click="removeManualBroker(entry.service)" class="btn-icon text-red-400 hover:text-red-600" title="Remove">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
           </div>
@@ -162,14 +163,14 @@
               <span class="text-xs text-gray-600">Verify TLS</span>
             </label>
             <button @click="addManualService" class="btn text-sm py-1.5 px-3 btn-primary">
-              {{ manualEntry ? 'Replace' : 'Add' }}
+              Add
             </button>
           </div>
         </div>
       </div>
 
       <!-- Empty state -->
-      <div v-if="Object.keys(services).length === 0 && !manualEntry" class="py-8 text-center text-gray-400 text-sm">
+      <div v-if="Object.keys(services).length === 0 && manualList.length === 0" class="py-8 text-center text-gray-400 text-sm">
         <p>No brokers available.</p>
         <p class="text-xs mt-1">Tap the pre-configured <span class="font-semibold">test.mosquitto.org</span> entry above to try the app, run <span class="font-semibold">Discover</span> on a LAN with MQTT brokers, or add one manually.</p>
         <p class="text-xs mt-1 italic">Common ports: 1883 (MQTT), 8883 (MQTTS), 8081/9001 (WSS/WS)</p>
@@ -214,7 +215,7 @@ export default defineComponent({
     let testTimer: ReturnType<typeof setInterval> | null = null
 
     // Shared state
-    const { preferredBrokerRef } = useAppState()
+    const { preferredBrokerRef, manualBrokersRef } = useAppState()
     const mqttConn = useMqttConnection()
 
     const preferredBroker = preferredBrokerRef
@@ -262,10 +263,10 @@ export default defineComponent({
         .map(([key, service]) => ({ key, service }))
     )
 
-    // Single manual entry (keyed as 'manual')
-    const MANUAL_KEY = 'manual'
-    const manualEntry = computed<ServiceEntry | null>(() =>
-      services.value[MANUAL_KEY] ?? null
+    // Manual brokers (persisted list)
+    const manualKey = (s: ServiceEntry): string => `${s.host}:${s.port}:${s.type}`
+    const manualList = computed(() =>
+      manualBrokersRef.value.map(service => ({ key: manualKey(service), service }))
     )
 
     // --- Helpers ---
@@ -350,7 +351,7 @@ export default defineComponent({
       return 'border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50'
     })
 
-    // --- Manual broker: single entry, silent replace ---
+    // --- Manual broker: persisted list, de-dupe on host:port:type ---
     const addManualService = () => {
       if (manualHost.value && manualPort.value) {
         const entry: ServiceEntry = {
@@ -363,7 +364,13 @@ export default defineComponent({
           source: 'manual',
           rejectUnauthorized: manualRejectUnauthorized.value
         }
-        services.value[MANUAL_KEY] = entry
+        const key = manualKey(entry)
+        const existing = manualBrokersRef.value.findIndex(s => manualKey(s) === key)
+        if (existing >= 0) {
+          manualBrokersRef.value.splice(existing, 1, entry)
+        } else {
+          manualBrokersRef.value.push(entry)
+        }
         // Also set as preferred broker (reset tested state)
         preferredBrokerRef.value = { ...entry, tested: false, autoConnect: false }
         testResult.value = null
@@ -372,12 +379,14 @@ export default defineComponent({
       }
     }
 
-    const removeManualEntry = () => {
-      // If the manual entry is preferred, clear preferred too
-      if (manualEntry.value && isPreferred(manualEntry.value)) {
+    const removeManualBroker = (entry: ServiceEntry) => {
+      // If the removed entry is preferred, clear preferred too
+      if (isPreferred(entry)) {
         preferredBrokerRef.value = null
       }
-      delete services.value[MANUAL_KEY]
+      const key = manualKey(entry)
+      const idx = manualBrokersRef.value.findIndex(s => manualKey(s) === key)
+      if (idx >= 0) manualBrokersRef.value.splice(idx, 1)
     }
 
     // --- Navigation ---
@@ -593,7 +602,7 @@ export default defineComponent({
       testTimeRemaining,
       preconfiguredList,
       discoveredList,
-      manualEntry,
+      manualList,
       showCredentials,
       sourceBadgeClass,
       sourceBadgeLabel,
@@ -603,7 +612,7 @@ export default defineComponent({
       isWssType,
       isPreferred,
       addManualService,
-      removeManualEntry,
+      removeManualBroker,
       navigateToClient,
       runInlineTest,
       manualRejectUnauthorized,

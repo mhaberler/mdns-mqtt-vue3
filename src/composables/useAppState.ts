@@ -38,6 +38,7 @@ export type ServiceEntry = {
 
 // Create persisted refs at module scope (shared singleton pattern)
 const preferredBrokerRef = usePersistedRef<ServiceEntry | null>('preferredBroker', null)
+const manualBrokersRef = usePersistedRef<ServiceEntry[]>('manualBrokers', [])
 
 /**
  * Returns shared app-level state refs.
@@ -45,6 +46,7 @@ const preferredBrokerRef = usePersistedRef<ServiceEntry | null>('preferredBroker
  */
 export function useAppState() {
   return {
-    preferredBrokerRef
+    preferredBrokerRef,
+    manualBrokersRef
   }
 }

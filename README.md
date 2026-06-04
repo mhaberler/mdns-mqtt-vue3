@@ -6,7 +6,7 @@ A cross-platform mobile application built with Vue 3 and Capacitor for discoveri
 
 - 📱 **Cross-platform**: Runs on Android, iOS, and web browsers
 - 🔍 **MQTT Broker Discovery**: mDNS/NSD scanning on native platforms
-- 🔗 **Broker Management**: Add and manage MQTT brokers manually or via discovery
+- 🔗 **Broker Management**: Add and manage MQTT brokers manually or via discovery; manually-added brokers persist and reappear on startup
 - 🌐 **Multiple Protocols**: Support for MQTT over TCP, WebSocket, TLS, and WSS
 - 💬 **Real-time Messaging**: Subscribe to topics and publish messages
 - 📊 **Message History**: View received messages with JSON formatting and timestamps
