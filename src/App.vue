@@ -1,14 +1,25 @@
 <template>
-  <div id="app">
+  <div id="app" style="padding-top: calc(3.5rem + env(safe-area-inset-top));">
+    <!-- Persistent top tab bar -->
+    <nav class="fixed top-0 inset-x-0 z-40 bg-white border-b border-gray-200 flex h-14"
+      style="padding-top: env(safe-area-inset-top); height: calc(3.5rem + env(safe-area-inset-top));">
+      <router-link v-for="tab in tabs" :key="tab.to" :to="tab.to"
+        class="flex-1 flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-gray-400"
+        :class="isTabActive(tab.to) ? 'text-primary' : ''">
+        <span>{{ tab.label }}</span>
+      </router-link>
+    </nav>
     <router-view />
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAppState } from './composables/useAppState'
 import { useMqttConnection } from './composables/useMqttConnection'
 import { useMqttDiscovery } from './composables/useMqttDiscovery'
+import { useHostDiscovery } from './composables/useHostDiscovery'
 import { useAppLifecycle } from './composables/useAppLifecycle'
 
 function isDiscovered(broker: { source?: string; discovered?: boolean }): boolean {
@@ -18,10 +29,22 @@ function isDiscovered(broker: { source?: string; discovered?: boolean }): boolea
 export default defineComponent({
   name: 'App',
   setup() {
+    const route = useRoute()
     const { preferredBrokerRef } = useAppState()
     const mqttConn = useMqttConnection()
     const { discoveredBrokers } = useMqttDiscovery()
+    // Continuous foreground host discovery (singleton self-manages the watch lifecycle).
+    useHostDiscovery()
     const { isActive } = useAppLifecycle()
+
+    const tabs = [
+      { to: '/', label: 'Scanner' },
+      { to: '/hosts', label: 'Hosts' },
+      { to: '/mqtt-client', label: 'MQTT Client' }
+    ]
+
+    const isTabActive = (to: string): boolean =>
+      to === '/' ? route.path === '/' : route.path.startsWith(to)
 
     // Auto-connect on startup for non-discovered preferred brokers (stable host).
     watch(preferredBrokerRef, (broker) => {
@@ -62,6 +85,8 @@ export default defineComponent({
         mqttConn.resume()
       }
     })
+
+    return { tabs, isTabActive }
   }
 })
 </script>
