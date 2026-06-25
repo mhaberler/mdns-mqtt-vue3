@@ -19,7 +19,6 @@ import { useRoute } from 'vue-router'
 import { useAppState } from './composables/useAppState'
 import { useMqttConnection } from './composables/useMqttConnection'
 import { useMqttDiscovery } from './composables/useMqttDiscovery'
-import { useHostDiscovery } from './composables/useHostDiscovery'
 import { useAppLifecycle } from './composables/useAppLifecycle'
 
 function isDiscovered(broker: { source?: string; discovered?: boolean }): boolean {
@@ -33,8 +32,6 @@ export default defineComponent({
     const { preferredBrokerRef } = useAppState()
     const mqttConn = useMqttConnection()
     const { discoveredBrokers } = useMqttDiscovery()
-    // Continuous foreground host discovery (singleton self-manages the watch lifecycle).
-    useHostDiscovery()
     const { isActive } = useAppLifecycle()
 
     const tabs = [

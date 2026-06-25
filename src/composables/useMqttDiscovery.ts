@@ -24,12 +24,14 @@ function onServiceEvent(arg: { action: ZeroConfAction; service: ZeroConfService 
   const st = removeLeadingAndTrailingDots(service.type || '')
   const key = `${service.name || 'unknown'}_${service.domain || 'local'}_${st}`
 
+  const port = service.port ?? 0
+
   if (action === 'added') {
     discoveredBrokers.value[key] = {
       name: service.name || `${service.type ?? 'service'} Service`,
       type: service.type || '',
       host: service.hostname || service.ipv4Addresses?.[0] || service.ipv6Addresses?.[0] || 'Unknown',
-      port: service.port || 0,
+      port: port > 0 ? port : 0,
       domain: service.domain,
       discovered: true,
       resolved: false,
@@ -37,19 +39,20 @@ function onServiceEvent(arg: { action: ZeroConfAction; service: ZeroConfService 
     }
   } else if (action === 'removed') {
     delete discoveredBrokers.value[key]
-  } else if (action === 'resolved' && service.port) {
-    if (discoveredBrokers.value[key]) {
-      discoveredBrokers.value[key] = {
-        ...discoveredBrokers.value[key],
-        name: service.name || discoveredBrokers.value[key].name,
-        host: service.hostname || service.ipv4Addresses?.[0] || service.ipv6Addresses?.[0] || discoveredBrokers.value[key].host,
-        port: service.port || discoveredBrokers.value[key].port,
-        domain: service.domain || discoveredBrokers.value[key].domain,
-        resolved: true,
-        txtRecord: service.txtRecord || {},
-        ipv4Addresses: service.ipv4Addresses || [],
-        ipv6Addresses: service.ipv6Addresses || []
-      }
+  } else if (action === 'resolved' && port > 0) {
+    const existing = discoveredBrokers.value[key]
+    discoveredBrokers.value[key] = {
+      name: service.name || existing?.name || `${service.type ?? 'service'} Service`,
+      type: service.type || existing?.type || '',
+      host: service.hostname || service.ipv4Addresses?.[0] || service.ipv6Addresses?.[0] || existing?.host || 'Unknown',
+      port,
+      domain: service.domain || existing?.domain,
+      discovered: true,
+      resolved: true,
+      source: 'discovered',
+      txtRecord: service.txtRecord || existing?.txtRecord || {},
+      ipv4Addresses: service.ipv4Addresses || existing?.ipv4Addresses || [],
+      ipv6Addresses: service.ipv6Addresses || existing?.ipv6Addresses || []
     }
   }
 }
@@ -58,9 +61,11 @@ async function startScan() {
   if (!Capacitor.isNativePlatform() || isWatching) return
   isWatching = true
   try {
-    for (const serviceType of SERVICE_TYPES) {
-      await ZeroConf.watch({ type: serviceType, domain: 'local.' }, onServiceEvent)
-    }
+    await Promise.all(
+      SERVICE_TYPES.map((serviceType) =>
+        ZeroConf.watch({ type: serviceType, domain: 'local.' }, onServiceEvent)
+      )
+    )
   } catch (_) {
     isWatching = false
   }

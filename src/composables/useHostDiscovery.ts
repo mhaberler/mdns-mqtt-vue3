@@ -69,9 +69,11 @@ async function startScan() {
   if (!Capacitor.isNativePlatform() || isWatching) return
   isWatching = true
   try {
-    for (const serviceType of HOST_SERVICE_TYPES) {
-      await ZeroConf.watch({ type: serviceType, domain: 'local.' }, onServiceEvent)
-    }
+    await Promise.all(
+      HOST_SERVICE_TYPES.map((serviceType) =>
+        ZeroConf.watch({ type: serviceType, domain: 'local.' }, onServiceEvent)
+      )
+    )
   } catch (_) {
     isWatching = false
   }
