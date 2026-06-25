@@ -1,6 +1,6 @@
 {
-  "appId": "com.haberlerm.mqttmdnsvue",
-  "appName": "mqtt-mdns-vue",
+  "appId": "com.haberlerm.mqttmdns",
+  "appName": "MQTT Scout",
   "webDir": "dist",
   "server": {
     "androidScheme": "http",

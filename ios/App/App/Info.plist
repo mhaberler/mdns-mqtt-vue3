@@ -50,6 +50,8 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Used to discover MQTT brokers on your local network via Bonjour/mDNS and to connect to user-selected brokers for publish/subscribe.</string>
 	<key>NSBonjourServices</key>

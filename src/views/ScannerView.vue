@@ -172,10 +172,16 @@
       <!-- Empty state -->
       <div v-if="Object.keys(services).length === 0 && manualList.length === 0" class="py-8 text-center text-gray-400 text-sm">
         <p>No brokers available.</p>
-        <p class="text-xs mt-1">Tap the pre-configured <span class="font-semibold">test.mosquitto.org</span> entry above to try the app, run <span class="font-semibold">Discover</span> on a LAN with MQTT brokers, or add one manually.</p>
+        <p class="text-xs mt-1">Tap the pre-configured <span class="font-semibold">test.mosquitto.org (WSS)</span> entry above to try the app, wait for brokers on a LAN with MQTT services (or tap <span class="font-semibold">Refresh</span>), or add one manually.</p>
         <p class="text-xs mt-1 italic">Common ports: 1883 (MQTT), 8883 (MQTTS), 8081/9001 (WSS/WS)</p>
       </div>
     </div>
+
+    <p class="mt-6 text-center text-[10px] text-gray-400">
+      <a :href="privacyPolicyUrl" target="_blank" rel="noopener noreferrer" class="underline hover:text-primary">Privacy Policy</a>
+      ·
+      <a :href="supportUrl" target="_blank" rel="noopener noreferrer" class="underline hover:text-primary">Support</a>
+    </p>
   </div>
 </template>
 
@@ -190,6 +196,8 @@ import { useMqttDiscovery } from '../composables/useMqttDiscovery'
 // Grace period (ms) before a preferred discovered broker is marked "Not found on this
 // network". The scan keeps running, so a later appearance still connects.
 const NOT_FOUND_GRACE_MS = 12000
+const PRIVACY_POLICY_URL = 'https://github.com/mhaberler/mdns-mqtt-vue3/blob/main/PRIVACY.md'
+const SUPPORT_URL = 'https://github.com/mhaberler/mdns-mqtt-vue3'
 
 export default defineComponent({
   name: 'ScannerView',
@@ -238,7 +246,8 @@ export default defineComponent({
       }
     }
 
-    if (isCapacitorApp.value) {
+    // Plain WS to internet hosts is blocked by iOS ATS; Android keeps the WS demo entry.
+    if (isCapacitorApp.value && Capacitor.getPlatform() !== 'ios') {
       defaultServices['test-mosquitto-ws'] = {
         name: 'test.mosquitto.org (WS)',
         type: '_mqtt-ws._tcp.',
@@ -523,7 +532,9 @@ export default defineComponent({
       runInlineTest,
       manualRejectUnauthorized,
       setPreferred,
-      clearPreferredBroker
+      clearPreferredBroker,
+      privacyPolicyUrl: PRIVACY_POLICY_URL,
+      supportUrl: SUPPORT_URL
     }
   }
 })
