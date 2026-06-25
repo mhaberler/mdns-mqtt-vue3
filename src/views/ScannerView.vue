@@ -377,7 +377,7 @@ export default defineComponent({
         preferredBrokerRef.value = { ...entry, tested: false, autoConnect: false }
         testResult.value = null
         manualHost.value = ''
-        manualPort.value = 18883
+        manualPort.value = 8883
       }
     }
 
