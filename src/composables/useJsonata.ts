@@ -43,6 +43,38 @@ export function parsePayload(raw: string): unknown {
   }
 }
 
+const IDENT_RE = /^[A-Za-z_][A-Za-z0-9_]*$/
+const PATHS_MAX_DEPTH = 4
+const PATHS_MAX_COUNT = 100
+
+/** Flatten a payload into JSONata-ready attribute paths for the picker:
+ *  { tempc: 1, sensor: { temp: 2 } } → ['tempc', 'sensor.temp'].
+ *  Scalars and arrays yield ['$']; non-identifier keys get backticks. */
+export function payloadPaths(raw: string): string[] {
+  const parsed = parsePayload(raw)
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    return ['$']
+  }
+  const paths: string[] = []
+  const walk = (obj: Record<string, unknown>, prefix: string, depth: number) => {
+    for (const [key, value] of Object.entries(obj)) {
+      if (paths.length >= PATHS_MAX_COUNT) return
+      const segment = IDENT_RE.test(key) ? key : `\`${key}\``
+      const path = prefix ? `${prefix}.${segment}` : segment
+      if (
+        typeof value === 'object' && value !== null && !Array.isArray(value) &&
+        depth < PATHS_MAX_DEPTH
+      ) {
+        walk(value as Record<string, unknown>, path, depth + 1)
+      } else {
+        paths.push(path)
+      }
+    }
+  }
+  walk(parsed as Record<string, unknown>, '', 1)
+  return paths
+}
+
 export type EvalResult = { value?: unknown; error?: string }
 
 export async function evalExpr(expr: string, raw: string): Promise<EvalResult> {

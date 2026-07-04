@@ -23,6 +23,8 @@ const registry = new Map<string, Set<RawMessageHandler>>()
 const latestCache = new Map<string, CachedMessage>()
 // bumped on registry mutation so activeFilters stays reactive
 const filtersVersion = ref(0)
+// bumped on every cached message so knownTopics/latestFor stay reactive
+const cacheVersion = ref(0)
 
 let wired = false
 
@@ -38,6 +40,7 @@ function wire() {
       const oldest = latestCache.keys().next().value
       if (oldest !== undefined) latestCache.delete(oldest)
     }
+    cacheVersion.value++
     for (const [filter, handlers] of registry) {
       if (topicMatches(filter, topic)) {
         handlers.forEach(h => h(topic, payload))
@@ -84,7 +87,19 @@ const activeFilters = computed(() => {
   return Array.from(registry.keys())
 })
 
+// All topics seen this session (alphabetical — groups hierarchies)
+const knownTopics = computed(() => {
+  void cacheVersion.value
+  return Array.from(latestCache.keys()).sort()
+})
+
+/** Reactive getLatest: usable inside computeds — re-evaluates as messages arrive. */
+function latestFor(filter: string): CachedMessage | null {
+  void cacheVersion.value
+  return getLatest(filter)
+}
+
 export function useTopicRouter() {
   wire()
-  return { subscribe, getLatest, activeFilters, topicMatches }
+  return { subscribe, getLatest, latestFor, knownTopics, activeFilters, topicMatches }
 }

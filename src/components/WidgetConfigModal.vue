@@ -45,6 +45,7 @@
           <label class="flex flex-col text-xs text-gray-500 flex-1">
             Topic (MQTT filter, + / # allowed)
             <input v-model="row.topic" placeholder="garage/ble/D4155C775668"
+                   list="topic-suggestions"
                    class="border border-gray-300 rounded px-2 py-1 text-sm font-mono text-gray-900" />
           </label>
           <label v-if="local.type === 'plot'" class="flex flex-col text-xs text-gray-500 w-28">
@@ -54,12 +55,22 @@
           <button v-if="local.topics.length > 1" class="text-gray-400 hover:text-error px-1 pb-1"
                   title="Remove binding" @click="local.topics.splice(idx, 1)">✕</button>
         </div>
+        <details v-if="previewFor(row.topic)" class="text-xs text-gray-500">
+          <summary class="cursor-pointer select-none">
+            Last payload <span class="font-mono">{{ previewFor(row.topic)!.topic }}</span>
+          </summary>
+          <pre class="mt-1 p-1.5 bg-white border border-gray-200 rounded font-mono text-[11px] text-gray-700 whitespace-pre-wrap break-all overflow-x-auto max-h-40 overflow-y-auto">{{ previewFor(row.topic)!.text }}</pre>
+        </details>
         <label class="flex flex-col text-xs text-gray-500">
           Value expression (JSONata)
           <input v-model="row.valueExpr" placeholder="$  or  tempc"
+                 :list="'attrs-' + row.id"
                  class="border border-gray-300 rounded px-2 py-1 text-sm font-mono text-gray-900"
                  :class="exprSyntaxError(row.valueExpr) ? 'border-error' : ''" />
           <span v-if="exprSyntaxError(row.valueExpr)" class="text-error">{{ exprSyntaxError(row.valueExpr) }}</span>
+          <datalist :id="'attrs-' + row.id">
+            <option v-for="path in attrPathsFor(row.topic)" :key="path" :value="path" />
+          </datalist>
         </label>
         <label class="flex flex-col text-xs text-gray-500">
           Color expression (JSONata, optional)
@@ -86,6 +97,10 @@
         <button class="btn" @click="$emit('close')">Cancel</button>
         <button class="btn btn-primary" @click="save">Save</button>
       </div>
+
+      <datalist id="topic-suggestions">
+        <option v-for="topic in knownTopics" :key="topic" :value="topic" />
+      </datalist>
     </div>
   </div>
 </template>
@@ -94,7 +109,7 @@
 import { defineComponent, reactive, type PropType } from 'vue'
 import type { WidgetConfig, TopicBinding } from '../types/dashboard'
 import { uid } from '../types/dashboard'
-import { compileExpr, evalExpr } from '../composables/useJsonata'
+import { compileExpr, evalExpr, payloadPaths, parsePayload } from '../composables/useJsonata'
 import { useTopicRouter } from '../composables/useTopicRouter'
 
 type TestResult = { text?: string; error?: string }
@@ -131,6 +146,27 @@ export default defineComponent({
       local.topics.push({ id: uid(), topic: '', valueExpr: '$' })
     }
 
+    const PREVIEW_MAX_CHARS = 600
+
+    // latestFor is cacheVersion-reactive, so these re-render as messages arrive
+    function previewFor(filter: string): { topic: string; text: string } | null {
+      if (!filter) return null
+      const cached = router.latestFor(filter)
+      if (!cached) return null
+      const parsed = parsePayload(cached.payload)
+      let text = typeof parsed === 'object' && parsed !== null
+        ? JSON.stringify(parsed, null, 2)
+        : cached.payload
+      if (text.length > PREVIEW_MAX_CHARS) text = text.slice(0, PREVIEW_MAX_CHARS) + '…'
+      return { topic: cached.topic, text }
+    }
+
+    function attrPathsFor(filter: string): string[] {
+      if (!filter) return []
+      const cached = router.latestFor(filter)
+      return cached ? payloadPaths(cached.payload) : []
+    }
+
     async function testBinding(row: TopicBinding) {
       const cached = router.getLatest(row.topic)
       if (!cached) {
@@ -154,7 +190,10 @@ export default defineComponent({
       emit('save', JSON.parse(JSON.stringify(local)) as WidgetConfig)
     }
 
-    return { local, testResults, exprSyntaxError, setColorExpr, addBinding, testBinding, save }
+    return {
+      local, testResults, exprSyntaxError, setColorExpr, addBinding, testBinding, save,
+      knownTopics: router.knownTopics, previewFor, attrPathsFor
+    }
   }
 })
 </script>

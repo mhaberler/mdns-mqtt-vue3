@@ -19,6 +19,7 @@ import { useRoute } from 'vue-router'
 import { useAppState } from './composables/useAppState'
 import { useMqttConnection } from './composables/useMqttConnection'
 import { useMqttDiscovery } from './composables/useMqttDiscovery'
+import { useTopicRouter } from './composables/useTopicRouter'
 import { useAppLifecycle } from './composables/useAppLifecycle'
 
 function isDiscovered(broker: { source?: string; discovered?: boolean }): boolean {
@@ -32,6 +33,9 @@ export default defineComponent({
     const { preferredBrokerRef } = useAppState()
     const mqttConn = useMqttConnection()
     const { discoveredBrokers } = useMqttDiscovery()
+    // Wire the topic-map collector from app start so the config-modal
+    // dropdowns fill from first connect, not first Dashboard visit
+    useTopicRouter()
     const { isActive } = useAppLifecycle()
 
     const tabs = [
