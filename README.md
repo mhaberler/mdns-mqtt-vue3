@@ -29,10 +29,10 @@ Connect to brokers and interact with topics in real-time.
 ## Tech Stack
 
 - **Vue 3** with Options API + `setup()` and TypeScript
-- **Capacitor 7.5+** for cross-platform mobile development
+- **Capacitor 8.4+** for cross-platform mobile development
 - **MQTT.js v5** for MQTT protocol support
 - **Vue Router 5** for navigation
-- **Vite 7** for fast development and building
+- **Vite 8** for fast development and building
 - **Tailwind CSS 4** for utility-first styling (no PostCSS required)
 - **@mhaberler/capacitor-zeroconf-nsd** for mDNS/NSD discovery (native platforms only)
 
@@ -73,8 +73,8 @@ bun run android
 bun run ios
 
 # Open in native IDEs
-bun run open:android
-bun run open:ios
+bun run open-in-Android-Studio
+bun run open-in-Xcode
 
 # Debugging with live reload
 bun run debug-android-s24    # Or other device targets
@@ -181,9 +181,9 @@ bun run build
 bun run sync
 
 # Generate signed APK/IPA through native IDEs
-bun run open:android  # Android Studio
+bun run open-in-Android-Studio  # Android Studio
 # or
-bun run open:ios      # Xcode
+bun run open-in-Xcode           # Xcode
 ```
 
 ## Build Optimization
