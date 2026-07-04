@@ -294,7 +294,8 @@ export default defineComponent({
 
     function isPreferred(service: ServiceEntry): boolean {
       if (!preferredBroker.value) return false
-      return preferredBroker.value.name === service.name &&
+      // case-insensitive: Android NSD lowercases instance names
+      return preferredBroker.value.name.toLowerCase() === service.name.toLowerCase() &&
              preferredBroker.value.port === service.port
     }
 
@@ -475,7 +476,8 @@ export default defineComponent({
       const b = preferredBroker.value
       if (!b) return false
       return Object.values(discoveredBrokers.value).some(
-        s => s.name === b.name && s.type === b.type && s.resolved
+        // case-insensitive: Android NSD lowercases instance names
+        s => s.name.toLowerCase() === b.name.toLowerCase() && s.type === b.type && s.resolved
       )
     }
 

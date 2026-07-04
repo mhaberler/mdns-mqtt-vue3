@@ -97,10 +97,12 @@ async function refresh() {
  * (instance name + service type). Returns null if the broker is not currently discovered
  * (or not resolved yet). The host returned is whatever the network currently advertises —
  * on Android NSD this is an IP that may differ from any previously persisted value.
+ * Name comparison is case-insensitive: Android NSD lowercases instance names, so a
+ * persisted name may differ in case from the live advertisement.
  */
 function liveHostFor(name: string, type: string): { host: string; port: number } | null {
   const match = Object.values(discoveredBrokers.value).find(
-    s => s.name === name && s.type === type && s.resolved
+    s => s.name.toLowerCase() === name.toLowerCase() && s.type === type && s.resolved
   )
   if (!match) return null
   return { host: match.host, port: match.port }

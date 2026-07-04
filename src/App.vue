@@ -68,7 +68,8 @@ export default defineComponent({
         isDiscovered(broker) &&
         mqttConn.connectionState.value === 'disconnected' &&
         Object.values(discoveredBrokers.value).some(
-          s => s.name === broker.name && s.type === broker.type && s.resolved
+          // case-insensitive: Android NSD lowercases instance names
+          s => s.name.toLowerCase() === broker.name.toLowerCase() && s.type === broker.type && s.resolved
         )
       ) {
         mqttConn.connect(broker)
