@@ -15,7 +15,7 @@
       <div v-for="item in grid.items" :key="item.id" class="grid-stack-item"
            :gs-id="item.id" :gs-x="item.x" :gs-y="item.y" :gs-w="item.w" :gs-h="item.h">
         <div class="grid-stack-item-content !overflow-visible">
-          <WidgetShell :widget="item.widget" :edit-mode="editMode"
+          <WidgetShell :widget="item.widget" :edit-mode="editMode" :data-enabled="dataEnabled"
                        @configure="configItem = item"
                        @delete="removeItem(item)" />
         </div>
@@ -43,7 +43,8 @@ export default defineComponent({
   components: { WidgetShell, WidgetConfigModal },
   props: {
     grid: { type: Object as PropType<GridDef>, required: true },
-    editMode: { type: Boolean, default: false }
+    editMode: { type: Boolean, default: false },
+    dataEnabled: { type: Boolean, default: true }
   },
   emits: ['delete-grid'],
   setup(props) {

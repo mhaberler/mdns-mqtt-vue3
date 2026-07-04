@@ -78,3 +78,48 @@ export type DashboardExportFile = {
 export function uid(): string {
   return Math.random().toString(16).slice(2, 10) + Date.now().toString(16).slice(-4)
 }
+
+/** Compare two broker snapshots for activation / mismatch (host+port+type). */
+export function brokersMatch(
+  expected: Partial<ServiceEntry> | undefined,
+  live: Partial<ServiceEntry> | null | undefined
+): boolean {
+  if (!expected?.host || !expected?.port || !live?.host || !live?.port) return false
+  const expType = expected.type ?? serviceTypeFor('ws')
+  const liveType = live.type ?? serviceTypeFor('ws')
+  return expected.host === live.host && expected.port === live.port && expType === liveType
+}
+
+export function brokerFromExport(b: NonNullable<DashboardExportFile['broker']>): Partial<ServiceEntry> {
+  return {
+    name: b.host,
+    type: serviceTypeFor(b.protocol ?? 'ws'),
+    host: b.host,
+    port: b.port,
+    username: b.username,
+    password: b.password,
+    rejectUnauthorized: b.rejectUnauthorized,
+    source: 'manual'
+  }
+}
+
+export function brokerToServiceEntry(b: Partial<ServiceEntry>): ServiceEntry | null {
+  if (!b.host || !b.port) return null
+  return {
+    name: b.name ?? b.host,
+    type: b.type ?? serviceTypeFor('ws'),
+    host: b.host,
+    port: b.port,
+    username: b.username,
+    password: b.password,
+    rejectUnauthorized: b.rejectUnauthorized,
+    source: b.source ?? 'manual'
+  }
+}
+
+export type ConnectionIndicatorVariant = 'driven' | 'brokerless' | 'mismatch' | 'offline'
+
+export type ConnectionIndicator = {
+  variant: ConnectionIndicatorVariant
+  message: string
+}

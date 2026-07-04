@@ -11,7 +11,7 @@
       </template>
     </div>
     <div class="flex-1 min-h-0 p-1">
-      <component :is="widgetComponent" :widget="widget" />
+      <component :is="widgetComponent" :widget="widget" :data-enabled="dataEnabled" />
     </div>
   </div>
 </template>
@@ -35,7 +35,8 @@ export default defineComponent({
   name: 'WidgetShell',
   props: {
     widget: { type: Object as PropType<WidgetConfig>, required: true },
-    editMode: { type: Boolean, default: false }
+    editMode: { type: Boolean, default: false },
+    dataEnabled: { type: Boolean, default: true }
   },
   emits: ['configure', 'delete'],
   setup(props) {

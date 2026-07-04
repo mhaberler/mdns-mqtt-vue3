@@ -18,7 +18,8 @@ import { formatValue } from './format'
 export default defineComponent({
   name: 'WidgetCard',
   props: {
-    widget: { type: Object as PropType<WidgetConfig>, required: true }
+    widget: { type: Object as PropType<WidgetConfig>, required: true },
+    dataEnabled: { type: Boolean, default: true }
   },
   setup(props) {
     const { values } = useWidgetBindings(() => props.widget.topics)
@@ -26,7 +27,9 @@ export default defineComponent({
       const first = props.widget.topics[0]
       return first ? values.value[first.id] : undefined
     })
-    const display = computed(() => formatValue(binding.value?.value, props.widget.decimals))
+    const display = computed(() =>
+      props.dataEnabled ? formatValue(binding.value?.value, props.widget.decimals) : '--'
+    )
     const color = computed(() => {
       const c = binding.value?.props?.color
       return typeof c === 'string' ? c : 'inherit'

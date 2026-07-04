@@ -28,7 +28,8 @@ import { formatValue, numericValue } from './format'
 export default defineComponent({
   name: 'WidgetScale',
   props: {
-    widget: { type: Object as PropType<WidgetConfig>, required: true }
+    widget: { type: Object as PropType<WidgetConfig>, required: true },
+    dataEnabled: { type: Boolean, default: true }
   },
   setup(props) {
     const { values } = useWidgetBindings(() => props.widget.topics)
@@ -39,11 +40,14 @@ export default defineComponent({
     const min = computed(() => props.widget.min ?? 0)
     const max = computed(() => props.widget.max ?? 100)
     const fraction = computed(() => {
+      if (!props.dataEnabled) return 0
       const v = numericValue(binding.value?.value)
       if (v === null || max.value === min.value) return 0
       return Math.min(1, Math.max(0, (v - min.value) / (max.value - min.value)))
     })
-    const display = computed(() => formatValue(binding.value?.value, props.widget.decimals))
+    const display = computed(() =>
+      props.dataEnabled ? formatValue(binding.value?.value, props.widget.decimals) : '--'
+    )
     const color = computed(() => {
       const c = binding.value?.props?.color
       return typeof c === 'string' ? c : '#2196F3'

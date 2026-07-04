@@ -21,7 +21,8 @@ export default defineComponent({
   name: 'WidgetPlot',
   components: { UPlotChart },
   props: {
-    widget: { type: Object as PropType<WidgetConfig>, required: true }
+    widget: { type: Object as PropType<WidgetConfig>, required: true },
+    dataEnabled: { type: Boolean, default: true }
   },
   setup(props) {
     const { values } = useWidgetBindings(() => props.widget.topics)
@@ -51,6 +52,7 @@ export default defineComponent({
     watch(bindingIds, resetBuffer, { immediate: true })
 
     function pushSample() {
+      if (!props.dataEnabled) return
       const maxPoints = props.widget.maxPoints ?? 600
       const now = Date.now() / 1000
       xs.push(now)
