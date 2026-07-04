@@ -16,7 +16,7 @@
             mqttConn.isTrying.value ? 'bg-gray-200 text-gray-500 cursor-not-allowed' :
             'btn-primary']"
           @click="mqttConn.isConnected.value ? mqttConn.disconnect() : connectToBroker()"
-          :disabled="mqttConn.isTrying.value"
+          :disabled="mqttConn.isTrying.value || (!mqttConn.isConnected.value && !service)"
         >
           {{ mqttConn.isConnected.value ? 'Disconnect' : mqttConn.isTrying.value ? 'Connecting…' : 'Connect' }}
         </button>
@@ -109,25 +109,28 @@ export default defineComponent({
     const router = useRouter()
     const mqttConn = useMqttConnection()
 
-    // Build service from query params (backward compat) or use connected broker
-    const service: ServiceEntry = mqttConn.connectedBroker.value ?? {
+    // Build service from connected broker or query params (backward compat).
+    // No broker at all (bare tab open) → null; never synthesize a bogus
+    // default, which would auto-connect to garbage and drop the shared
+    // connection into a retry loop.
+    const service: ServiceEntry | null = mqttConn.connectedBroker.value ?? (route.query.host ? {
       name: (route.query.name as string) || 'Unknown Service',
       type: (route.query.type as string) || '_mqtt._tcp.',
-      host: (route.query.host as string) || 'localhost',
+      host: route.query.host as string,
       port: parseInt((route.query.port as string) || '8883', 10) || 8883,
       discovered: (route.query.discovered as string) === 'true',
       txtRecord: route.query.txtRecord ? JSON.parse(route.query.txtRecord as string) : {}
-    }
+    } : null)
 
     const publishTopic = ref<string>('test/topic')
     const publishMessage = ref<string>('Hello, MQTT!')
 
-    const serviceName = computed(() => service.name || 'MQTT Service')
+    const serviceName = computed(() => service?.name || 'No broker selected')
 
 
 
     const connectToBroker = () => {
-      mqttConn.connect(service)
+      if (service) mqttConn.connect(service)
     }
 
     const publishMessageToTopic = async () => {
@@ -147,10 +150,14 @@ export default defineComponent({
 
     onMounted(() => {
       mqttConn.clearMessages()
-      mqttConn.addMessage('system', `Configured for ${serviceName.value}`)
-      // If not already connected, auto-connect
-      if (mqttConn.connectionState.value === 'disconnected') {
-        connectToBroker()
+      if (service) {
+        mqttConn.addMessage('system', `Configured for ${serviceName.value}`)
+        // If not already connected, auto-connect
+        if (mqttConn.connectionState.value === 'disconnected') {
+          connectToBroker()
+        }
+      } else {
+        mqttConn.addMessage('system', 'No broker selected — pick one on the Scanner tab')
       }
     })
 

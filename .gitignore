@@ -26,3 +26,4 @@ dist-ssr
 python/arecord.py
 python/dnsresolve.py
 .codebase-memory
+.playwright-mcp/
