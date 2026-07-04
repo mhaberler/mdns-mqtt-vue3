@@ -44,9 +44,8 @@
         <div class="flex gap-2 items-end">
           <label class="flex flex-col text-xs text-gray-500 flex-1">
             Topic (MQTT filter, + / # allowed)
-            <input v-model="row.topic" placeholder="garage/ble/D4155C775668"
-                   list="topic-suggestions"
-                   class="border border-gray-300 rounded px-2 py-1 text-sm font-mono text-gray-900" />
+            <ComboInput v-model="row.topic" :options="knownTopics"
+                        placeholder="garage/ble/D4155C775668" />
           </label>
           <label v-if="local.type === 'plot'" class="flex flex-col text-xs text-gray-500 w-28">
             Label
@@ -63,14 +62,10 @@
         </details>
         <label class="flex flex-col text-xs text-gray-500">
           Value expression (JSONata)
-          <input v-model="row.valueExpr" placeholder="$  or  tempc"
-                 :list="'attrs-' + row.id"
-                 class="border border-gray-300 rounded px-2 py-1 text-sm font-mono text-gray-900"
-                 :class="exprSyntaxError(row.valueExpr) ? 'border-error' : ''" />
+          <ComboInput v-model="row.valueExpr" :options="attrPathsFor(row.topic)"
+                      placeholder="$  or  tempc"
+                      :error="!!exprSyntaxError(row.valueExpr)" />
           <span v-if="exprSyntaxError(row.valueExpr)" class="text-error">{{ exprSyntaxError(row.valueExpr) }}</span>
-          <datalist :id="'attrs-' + row.id">
-            <option v-for="path in attrPathsFor(row.topic)" :key="path" :value="path" />
-          </datalist>
         </label>
         <label class="flex flex-col text-xs text-gray-500">
           Color expression (JSONata, optional)
@@ -97,10 +92,6 @@
         <button class="btn" @click="$emit('close')">Cancel</button>
         <button class="btn btn-primary" @click="save">Save</button>
       </div>
-
-      <datalist id="topic-suggestions">
-        <option v-for="topic in knownTopics" :key="topic" :value="topic" />
-      </datalist>
     </div>
   </div>
 </template>
@@ -111,11 +102,13 @@ import type { WidgetConfig, TopicBinding } from '../types/dashboard'
 import { uid } from '../types/dashboard'
 import { compileExpr, evalExpr, payloadPaths, parsePayload } from '../composables/useJsonata'
 import { useTopicRouter } from '../composables/useTopicRouter'
+import ComboInput from './ComboInput.vue'
 
 type TestResult = { text?: string; error?: string }
 
 export default defineComponent({
   name: 'WidgetConfigModal',
+  components: { ComboInput },
   props: {
     widget: { type: Object as PropType<WidgetConfig>, required: true }
   },
