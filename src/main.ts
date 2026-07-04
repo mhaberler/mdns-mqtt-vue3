@@ -1,4 +1,5 @@
 import './polyfills'
+import 'gridstack/dist/gridstack.min.css'
 import './style.css'
 import { createApp } from 'vue'
 import App from './App.vue'

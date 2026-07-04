@@ -2,6 +2,7 @@ import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 import ScannerView from '../views/ScannerView.vue'
 import HostsView from '../views/HostsView.vue'
 import MQTTClientView from '../views/MQTTClientView.vue'
+import DashboardView from '../views/DashboardView.vue'
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -19,6 +20,11 @@ const routes: Array<RouteRecordRaw> = [
     name: 'MQTTClient',
     component: MQTTClientView,
     props: true
+  },
+  {
+    path: '/dashboard',
+    name: 'Dashboard',
+    component: DashboardView
   }
 ]
 

@@ -37,7 +37,8 @@ export default defineComponent({
     const tabs = [
       { to: '/', label: 'Scanner' },
       { to: '/hosts', label: 'Hosts' },
-      { to: '/mqtt-client', label: 'MQTT Client' }
+      { to: '/mqtt-client', label: 'MQTT Client' },
+      { to: '/dashboard', label: 'Dashboard' }
     ]
 
     const isTabActive = (to: string): boolean =>

@@ -34,10 +34,22 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('mqtt')) {
+            // match the package path, not the absolute path — the project
+            // directory name contains 'mqtt' and 'vue'
+            const pkg = id.split('node_modules/').pop()
+            if (pkg.startsWith('mqtt')) {
               return 'vendor-mqtt'
             }
-            if (id.includes('vue')) {
+            if (pkg.startsWith('gridstack')) {
+              return 'vendor-gridstack'
+            }
+            if (pkg.startsWith('jsonata')) {
+              return 'vendor-jsonata'
+            }
+            if (pkg.startsWith('uplot')) {
+              return 'vendor-uplot'
+            }
+            if (pkg.startsWith('vue') || pkg.startsWith('@vue')) {
               return 'vendor-vue'
             }
             return 'vendor'

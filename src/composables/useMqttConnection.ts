@@ -13,6 +13,8 @@ export type MessageItem = {
   timestamp: string
 }
 
+export type RawMessageHandler = (topic: string, payload: string) => void
+
 // Protocol helpers (shared with MQTTClientView)
 const wsPatterns = ['_mqtt-ws._tcp.', '_mqtt-wss._tcp.', '._mqtt-ws._tcp', '._mqtt-wss._tcp']
 const tlsPatterns = ['_mqtts._tcp.', '_mqtt-wss._tcp.', '._mqtts._tcp.', '._mqtt-wss._tcp.']
@@ -52,6 +54,13 @@ let mqttClient: MqttClient | null = null
 let connectionTimeout: ReturnType<typeof setTimeout> | null = null
 let suspendedBroker: ServiceEntry | null = null
 
+// Dashboard routing layer: desired filters kept while disconnected,
+// (re-)issued on every connect. Additive — the '#' subscribe for the
+// MQTT Client view is unaffected.
+const subscribedFilters = new Set<string>()
+const messageHandlers = new Set<RawMessageHandler>()
+const reconnectHandlers = new Set<() => void>()
+
 const MESSAGE_CAP = 10
 
 function addMessage(topic: string, payload: string) {
@@ -67,6 +76,33 @@ function addMessage(topic: string, payload: string) {
 
 function clearMessages() {
   messages.value = []
+}
+
+function onMessage(handler: RawMessageHandler): () => void {
+  messageHandlers.add(handler)
+  return () => messageHandlers.delete(handler)
+}
+
+function onReconnect(handler: () => void): () => void {
+  reconnectHandlers.add(handler)
+  return () => reconnectHandlers.delete(handler)
+}
+
+function subscribeTopic(filter: string) {
+  if (subscribedFilters.has(filter)) return
+  subscribedFilters.add(filter)
+  if (mqttClient && connectionState.value === 'connected') {
+    mqttClient.subscribe(filter, (err) => {
+      if (err) error.value = `Failed to subscribe ${filter}: ${err.message}`
+    })
+  }
+}
+
+function unsubscribeTopic(filter: string) {
+  if (!subscribedFilters.delete(filter)) return
+  if (mqttClient && connectionState.value === 'connected') {
+    mqttClient.unsubscribe(filter)
+  }
 }
 
 function cleanup() {
@@ -159,6 +195,14 @@ function connect(brokerArg: ServiceEntry) {
           addMessage('system', `Connected and subscribed to all topics (#)`)
         }
       })
+
+      // Re-issue dashboard filter subscriptions (fresh connect and reconnect)
+      for (const filter of subscribedFilters) {
+        mqttClient!.subscribe(filter, (err) => {
+          if (err) error.value = `Failed to subscribe ${filter}: ${err.message}`
+        })
+      }
+      reconnectHandlers.forEach(h => h())
     })
 
     mqttClient.on('error', (err: Error) => {
@@ -172,13 +216,14 @@ function connect(brokerArg: ServiceEntry) {
     })
 
     mqttClient.on('message', (topic: string, message: Buffer) => {
+      const messageStr = message.toString()
+      messageHandlers.forEach(h => h(topic, messageStr))
       let payload: string
       try {
-        const messageStr = message.toString()
         const parsed = JSON.parse(messageStr)
         payload = JSON.stringify(parsed, null, 2)
       } catch (_) {
-        payload = message.toString()
+        payload = messageStr
       }
       addMessage(topic, payload)
     })
@@ -338,6 +383,12 @@ export function useMqttConnection() {
     publish,
     testConnect,
     clearMessages,
-    addMessage
+    addMessage,
+
+    // Routing hooks (dashboard)
+    onMessage,
+    onReconnect,
+    subscribeTopic,
+    unsubscribeTopic
   }
 }

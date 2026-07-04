@@ -53,10 +53,13 @@
     "buffer": "^6.0.3",
     "crypto-browserify": "^3.12.1",
     "events": "^3.3.0",
+    "gridstack": "^12.6.0",
+    "jsonata": "^2.2.1",
     "mqtt": "^5.15.1",
     "process": "^0.11.10",
     "stream": "^0.0.3",
     "tailwindcss": "^4.3.2",
+    "uplot": "^1.6.32",
     "vue": "^3.5.39",
     "vue-router": "^5.1.0"
   },
