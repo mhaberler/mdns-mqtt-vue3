@@ -1,9 +1,9 @@
 PODS:
-  - Capacitor (8.4.1):
+  - Capacitor (8.5.0):
     - CapacitorCordova
-  - CapacitorApp (8.1.0):
+  - CapacitorApp (8.1.1):
     - Capacitor
-  - CapacitorCordova (8.4.1)
+  - CapacitorCordova (8.5.0)
   - CapacitorPreferences (8.0.1):
     - Capacitor
   - MhaberlerCapacitorZeroconfNsd (5.0.5):
@@ -29,9 +29,9 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/@mhaberler/capacitor-zeroconf-nsd"
 
 SPEC CHECKSUMS:
-  Capacitor: 35242afe195b1e53c58ca1b827d1b444c5e6602b
-  CapacitorApp: 449ffe26375e96f8aaaee625ac6e01e5c57c8650
-  CapacitorCordova: eebe6bcf807b1b06f3f48237650f96bbcd0eef09
+  Capacitor: 00b87168591cc006ea6f5c0de681ec5c39a2c8eb
+  CapacitorApp: 305bd13c44f6f9d164e2ee66a4faa956ed8c0e06
+  CapacitorCordova: 9d3acbb574048e7167d2af127a0af2123e619f2f
   CapacitorPreferences: cca2021f386efb75947c850334447d9ff22b14f1
   MhaberlerCapacitorZeroconfNsd: 9e9d4f7a3a9f6c142696abdb2778df1d2ca96e68
 
