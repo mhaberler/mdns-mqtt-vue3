@@ -23,7 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 .cc-history
-python/arecord.py
-python/dnsresolve.py
 .codebase-memory
 .playwright-mcp/
+App.ipa
+fastlane/report.xml
