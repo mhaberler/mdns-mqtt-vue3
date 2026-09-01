@@ -1,7 +1,7 @@
 {
   "name": "mdns-mqtt-vue3",
   "private": true,
-  "version": "1.3.1",
+  "version": "1.3.2",
   "type": "module",
   "config": {
     "port": "8102"
@@ -50,30 +50,30 @@
     "tag-and-push-beta": "bunx npm version patch --no-git-tag-version && fastlane bump && git add . && git commit -m \"$npm_package_name v${npm_package_version}\" && git tag v${npm_package_version} && git push origin main && git push origin --tags && bun run clean && bun run build && bun run sync"
   },
   "dependencies": {
-    "@capacitor/android": "^8.5.0",
+    "@capacitor/android": "^8.5.1",
     "@capacitor/app": "8.1.1",
-    "@capacitor/cli": "^8.5.0",
-    "@capacitor/core": "^8.5.0",
-    "@capacitor/ios": "^8.5.0",
+    "@capacitor/cli": "^8.5.1",
+    "@capacitor/core": "^8.5.1",
+    "@capacitor/ios": "^8.5.1",
     "@capacitor/preferences": "^8.0.1",
     "@mhaberler/capacitor-zeroconf-nsd": "5.0.5",
     "@tailwindcss/vite": "^4.3.3",
     "buffer": "^6.0.3",
     "crypto-browserify": "^3.12.1",
     "events": "^3.3.0",
-    "gridstack": "^13.0.2",
+    "gridstack": "^13.2.0",
     "jsonata": "^2.2.2",
     "mqtt": "^5.15.2",
     "process": "^0.11.10",
     "stream": "^0.0.3",
     "tailwindcss": "^4.3.3",
     "uplot": "^1.6.32",
-    "vue": "^3.5.41",
-    "vue-router": "^5.2.0"
+    "vue": "^3.5.42",
+    "vue-router": "^5.3.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.8",
-    "vue-tsc": "^3.3.9",
-    "vite": "^8.2.1"
+    "vue-tsc": "^3.3.11",
+    "vite": "^8.2.2"
   }
 }
