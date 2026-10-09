@@ -121,8 +121,8 @@ jobs:
           xc="$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
           sudo xcode-select -s "$xc"
           xcodebuild -version
-      # bun install must precede cap sync: the Podfile resolves pods through
-      # ../../node_modules, and cap sync ios runs pod install.
+      # bun install must precede cap sync and the build: CapApp-SPM/Package.swift
+      # references each plugin by a relative path into node_modules.
       - name: Web build + cap sync
         run: |
           bun install
@@ -149,11 +149,12 @@ jobs:
       # -allowProvisioningUpdates + the API key lets Xcode fetch the profile and
       # use the cloud-managed distribution certificate. Archiving signed would
       # make Xcode mint a new development certificate on every runner.
-      # This project uses CocoaPods, so the archive comes from the workspace.
+      # Dependencies come from Swift Package Manager via ios/App/CapApp-SPM, so
+      # the archive is built from the project, not a CocoaPods workspace.
       - name: Archive (unsigned)
         run: |
           xcodebuild archive \
-            -workspace ios/App/App.xcworkspace -scheme App -configuration Release \
+            -project ios/App/App.xcodeproj -scheme App -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/App.xcarchive" \
             MARKETING_VERSION=${{ needs.version.outputs.name }} \

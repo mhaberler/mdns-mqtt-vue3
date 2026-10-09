@@ -63,7 +63,7 @@ collide.
 ## Do I need a Mac?
 
 **Not for signed release builds.** All iOS signing happens on GitHub's
-**macOS runner** (`macos-15`, which has Xcode and CocoaPods installed); you
+**macOS runner** (`macos-15`, which has Xcode installed); you
 never need a Mac or Xcode yourself to set up, build, sign or ship. The Apple
 side is done in a browser, and the secrets can be set from any machine.
 
@@ -104,14 +104,14 @@ Prerequisites:
 - [bun](https://bun.sh)
 - **Android**: Android Studio or the Android SDK (compileSdk/targetSdk **36**,
   minSdk 23) + **JDK 21**. Gradle 9.5.0 comes from the committed wrapper.
-- **iOS**: Xcode (deployment target **16.0**) and CocoaPods. This project uses
-  CocoaPods, so the Xcode entry point is `ios/App/App.xcworkspace`, *not* the
-  `.xcodeproj`.
+- **iOS**: Xcode (deployment target **15.0**). No CocoaPods — native
+  dependencies come from **Swift Package Manager** via `ios/App/CapApp-SPM`, so
+  the Xcode entry point is `ios/App/App.xcodeproj`.
 
 ```sh
-bun install                   # must run first: the Podfile points at ../../node_modules
+bun install                   # must run first: CapApp-SPM/Package.swift points into node_modules
 bun run build                 # vite build → dist/
-bun run sync                  # cap sync: copies dist/ into ios/ and android/, runs pod install
+bun run sync                  # cap sync: copies dist/ into ios/ and android/, regenerates CapApp-SPM
 ```
 
 Then run on a device:
@@ -123,7 +123,7 @@ bun run run-on-galaxy-s24     # fixed --target device IDs, see package.json
 bun run debug-android-s24     # live reload from the vite dev server (port 8102)
 bun run debug-ios
 bun run open-in-Android-Studio
-bun run open-in-Xcode         # opens the .xcworkspace
+bun run open-in-Xcode         # opens the .xcodeproj
 ```
 
 List your own device IDs with `bunx cap run android --list` /
@@ -252,11 +252,11 @@ ASC_ISSUER_ID=69a6de7e-xxxx-xxxx-xxxx-xxxxxxxxxxxx
   (write an `.ipa`) and [ci/ExportOptions-upload.plist](ci/ExportOptions-upload.plist)
   (upload to App Store Connect). Both: `method = app-store-connect`,
   `signingStyle = automatic`, `teamID = HLX9TTSLFS`.
-- Because this project uses CocoaPods, the archive is built from the
-  **workspace** (`-workspace ios/App/App.xcworkspace -scheme App`), not the
-  `.xcodeproj`. No `.xcscheme` is committed: `xcodebuild` auto-creates the `App`
-  scheme from the target. Verify with
-  `xcodebuild -list -workspace ios/App/App.xcworkspace`.
+- Native dependencies come from Swift Package Manager via
+  `ios/App/CapApp-SPM`, so the archive is built from the project
+  (`-project ios/App/App.xcodeproj -scheme App`). No `.xcscheme` is committed:
+  `xcodebuild` auto-creates the `App` scheme from the target. Verify with
+  `xcodebuild -list -project ios/App/App.xcodeproj`.
 
 ## One-time setup: Android keystore
 
@@ -417,7 +417,7 @@ the GitHub Release `vX.Y.Z` with `mqtt-scout-X.Y.Z.ipa`, `.apk` and `.aab`.
 | `version` | ubuntu-latest | version name from the tag (`v1.3.4` → `1.3.4`) or `jq -r .version package.json` on a dispatch; version code = `github.run_number + 100` |
 | `android` | ubuntu-24.04, JDK 21 (temurin), bun | `bun install` → `bunx vite build` → `bunx cap sync android` → `base64 -d` the `ANDROID_KEYSTORE` secret into `$RUNNER_TEMP` → `./gradlew --no-daemon assembleRelease bundleRelease -PversionCode -PversionName` with the signing env vars → rename outputs to `mqtt-scout-<version>.apk/.aab` → upload artifact `android` |
 | `play` | ubuntu-latest, tags only | download the `android` artifact → `r0adkll/upload-google-play` with the service-account JSON, `packageName: com.haberlerm.mqttmdns`, `track: internal`, `status: draft` |
-| `ios` | macos-15, newest Xcode, bun | `bun install` → `bunx vite build` → `bunx cap sync ios` (runs `pod install`) → decode + validate the API key as `AuthKey_<KEY_ID>.p8` → unsigned `xcodebuild archive -workspace ios/App/App.xcworkspace -scheme App` with `MARKETING_VERSION`/`CURRENT_PROJECT_VERSION` → `-exportArchive` with `ci/ExportOptions-export.plist` → IPA; on tags a second `-exportArchive` with `ci/ExportOptions-upload.plist` sends it to TestFlight → upload artifact `ios` |
+| `ios` | macos-15, newest Xcode, bun | `bun install` → `bunx vite build` → `bunx cap sync ios` → decode + validate the API key as `AuthKey_<KEY_ID>.p8` → unsigned `xcodebuild archive -project ios/App/App.xcodeproj -scheme App` with `MARKETING_VERSION`/`CURRENT_PROJECT_VERSION` → `-exportArchive` with `ci/ExportOptions-export.plist` → IPA; on tags a second `-exportArchive` with `ci/ExportOptions-upload.plist` sends it to TestFlight → upload artifact `ios` |
 | `release` | ubuntu-latest, tags only | download both artifacts → `gh release create <tag> out/*` |
 
 Android pinning note: `ubuntu-24.04` is pinned rather than `ubuntu-latest`
@@ -486,8 +486,9 @@ and preferences.
 
 | Symptom | Cause / fix |
 |---|---|
-| iOS: `xcodebuild: error: The workspace … does not contain a scheme named "App"` | Scheme autocreation didn't happen. Fix by committing a shared scheme: in Xcode, Product → Scheme → Manage Schemes → tick **Shared** for `App`, which writes `ios/App/App.xcodeproj/xcshareddata/xcschemes/App.xcscheme`. Check with `xcodebuild -list -workspace ios/App/App.xcworkspace`. |
-| iOS: pods not found / `Capacitor/Capacitor.h` missing | `bun install` must run **before** `cap sync ios`: the Podfile resolves pods through `../../node_modules`. |
+| iOS: `xcodebuild: error: … does not contain a scheme named "App"` | Scheme autocreation didn't happen. Fix by committing a shared scheme: in Xcode, Product → Scheme → Manage Schemes → tick **Shared** for `App`, which writes `ios/App/App.xcodeproj/xcshareddata/xcschemes/App.xcscheme`. Check with `xcodebuild -list -project ios/App/App.xcodeproj`. |
+| iOS: `missing package product 'Capacitor'` / a plugin product not found | `bun install` must run **before** `cap sync ios` and before building: `ios/App/CapApp-SPM/Package.swift` references each plugin by a relative path into `node_modules`. |
+| iOS: a plugin's methods are missing at runtime | That plugin has no SPM support. Every installed plugin needs a `Package.swift`; `cap sync ios` warns when one is missing. |
 | iOS: `The flag -authenticationKeyID is required when specifying -authenticationKeyPath` | `ASC_*` secrets not set. The workflow fails earlier with *"ASC_\* secrets missing"*. |
 | iOS: `Invalid authentication key credential specified (…keyPathInvalid…)` | The `.p8` secret didn't decode to a key. The workflow validates it and writes it as `AuthKey_<KEY_ID>.p8`; the sync script refuses non-`.p8` files. |
 | iOS: `Cloud signing permission error`, `No signing certificate "iOS Distribution" found`, `No profiles for 'com.haberlerm.mqttmdns' were found` | The API key isn't **Admin**. Generate an Admin key, update `.env`, re-sync `--ios-only`. |
@@ -504,7 +505,7 @@ Useful checks:
 ```sh
 gh secret list                                   # which secrets are set (not their values)
 gh run view <run-id> --log-failed                # failing step output
-xcodebuild -list -workspace ios/App/App.xcworkspace
+xcodebuild -list -project ios/App/App.xcodeproj
 unzip -p mqtt-scout-X.Y.Z.ipa 'Payload/App.app/Info.plist' | plutil -p - | grep -E 'Version|Identifier'
 apksigner verify --print-certs mqtt-scout-X.Y.Z.apk
 ```
@@ -520,6 +521,7 @@ apksigner verify --print-certs mqtt-scout-X.Y.Z.apk
 | [ci/ExportOptions-upload.plist](ci/ExportOptions-upload.plist) | iOS export with upload to App Store Connect |
 | [android/app/build.gradle](android/app/build.gradle) | `signingConfigs.release`, `-PversionCode/-PversionName` |
 | `ios/App/App/Info.plist` | `NSLocalNetworkUsageDescription`, `NSBonjourServices`, `ITSAppUsesNonExemptEncryption` |
-| `ios/App/Podfile` | CocoaPods dependencies (resolved via `node_modules`) |
+| `ios/App/CapApp-SPM/Package.swift` | generated SPM manifest listing the plugins — managed by `cap sync`, do not edit |
+| `ios/debug.xcconfig` | sets `CAPACITOR_DEBUG`; attached to the **Debug** configurations only |
 | [scripts/sync-app-secrets.sh](scripts/sync-app-secrets.sh) | push signing secrets from `.env` to GitHub |
 | [.env.example](.env.example) | template for `.env` (gitignored) |

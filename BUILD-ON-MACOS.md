@@ -18,8 +18,10 @@ After install, follow the printed instructions to add `brew` to your shell PATH 
 brew install node bun git
 brew install --cask android-studio
 brew install --cask temurin@21         # JDK 21, required by AGP 8.x / Gradle 9.x
-brew install cocoapods                 # iOS pod manager
 ```
+
+iOS needs no extra dependency manager: native dependencies come from Swift
+Package Manager, which Xcode resolves itself.
 
 Xcode (App Store, free, ~10 GB) is required for iOS — install it, launch once to accept the license:
 
@@ -77,7 +79,7 @@ bun run build                  # outputs to dist/
 bun run sync                   # copies dist/ + plugins into android/ and ios/
 ```
 
-`sync` runs `cap sync`, which also runs `pod install` for iOS — first run downloads CocoaPods specs and may take several minutes.
+`sync` runs `cap sync`, which copies the web build into both platforms and regenerates `ios/App/CapApp-SPM/Package.swift` from the installed plugins. Xcode resolves the Swift packages on the first build, which can take a minute.
 
 ## 4. Run on Android
 
@@ -159,7 +161,7 @@ bun run dev                    # http://localhost:8102
 
 - **Gradle error `getDefaultProguardFile('proguard-android.txt') is no longer supported`** — already fixed in this repo (uses `proguard-android-optimize.txt`). If it returns from a plugin, ensure all `@mhaberler/capacitor-zeroconf-nsd` deps are ≥ 5.0.4: `bun update @mhaberler/capacitor-zeroconf-nsd`.
 - **`SDK location not found`** — `ANDROID_HOME` not set, or `android/local.properties` is stale. Delete `android/local.properties` and re-run `bun run sync`.
-- **`pod install` fails on Apple Silicon** — ensure `cocoapods` was installed with `brew install cocoapods`, which is self-contained; a `sudo gem install` against the system interpreter is the usual cause. Re-run: `cd ios/App && pod install`.
+- **Xcode: `missing package product 'Capacitor'`** — `ios/App/CapApp-SPM/Package.swift` references plugins by relative path into `node_modules`, so run `bun install` then `bun run sync`. In Xcode, **File → Packages → Reset Package Caches** clears a stale resolution.
 - **Xcode "No account found"** — add Apple ID in **Xcode → Settings → Accounts**.
 - **App can't reach broker on Android** — local network discovery needs `cleartext` traffic (already enabled in `capacitor.config.json`) and on Android 13+ the runtime **Nearby devices** permission. Grant when prompted.
 - **mDNS finds nothing on simulator** — iOS Simulator and Android Emulator both have flaky multicast support; test mDNS on a physical device.
