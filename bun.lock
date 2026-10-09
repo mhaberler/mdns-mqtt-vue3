@@ -11,7 +11,7 @@
         "@capacitor/core": "^8.5.1",
         "@capacitor/ios": "^8.5.1",
         "@capacitor/preferences": "^8.0.1",
-        "@mhaberler/capacitor-zeroconf-nsd": "5.0.5",
+        "@mhaberler/capacitor-zeroconf-nsd": "^5.1.0",
         "@tailwindcss/vite": "^4.3.3",
         "buffer": "^6.0.3",
         "crypto-browserify": "^3.12.1",
@@ -90,7 +90,7 @@
 
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
 
-    "@mhaberler/capacitor-zeroconf-nsd": ["@mhaberler/capacitor-zeroconf-nsd@5.0.5", "", { "dependencies": { "@mhaberler/capacitor-zeroconf-nsd": "^5.0.4" }, "peerDependencies": { "@capacitor/core": ">=8.0.0", "bonjour": "^3.5.0" } }, "sha512-NcdhC9wgHCFe9RLE9SH6EfGGviO27x80PqTlV1cmWT+eGNHevlLsQzovW0yXfro0SqPWarmlO7/wl68gHbAOTw=="],
+    "@mhaberler/capacitor-zeroconf-nsd": ["@mhaberler/capacitor-zeroconf-nsd@5.1.0", "", { "peerDependencies": { "@capacitor/core": ">=8.0.0", "bonjour": "^3.5.0" } }, "sha512-0r6H1UTLR3Fa701vSszSHQ++8moceQo8JgYMasDHqOecF11F63J5/z8S7MqhTw+qSc+MSXHn+27QbLYZ2J8xeg=="],
 
     "@oxc-project/types": ["@oxc-project/types@0.147.0", "", {}, "sha512-IJ3s6ltHLp45S0bh7phkX+gJO7A1Wuz2EaqpAhb8WjqDwbzMiWKHhyyT42tskaWjEYXtHtVCPpnBJVT9+dcRLg=="],
 
