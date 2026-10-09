@@ -104,7 +104,7 @@ Prerequisites:
 - [bun](https://bun.sh)
 - **Android**: Android Studio or the Android SDK (compileSdk/targetSdk **36**,
   minSdk 23) + **JDK 21**. Gradle 9.5.0 comes from the committed wrapper.
-- **iOS**: Xcode (deployment target **15.0**). No CocoaPods — native
+- **iOS**: Xcode (deployment target **17.0**). No CocoaPods — native
   dependencies come from **Swift Package Manager** via `ios/App/CapApp-SPM`, so
   the Xcode entry point is `ios/App/App.xcodeproj`.
 
