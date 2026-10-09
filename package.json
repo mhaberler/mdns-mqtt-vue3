@@ -40,14 +40,9 @@
     "apk:debug": "bun run build && bun run sync && (cd android && ./gradlew assembleDebug) && echo \"APK: android/app/build/outputs/apk/debug/app-debug.apk\"",
     "apk:debug:install": "adb install -r android/app/build/outputs/apk/debug/app-debug.apk",
     "apk:debug:all": "bun run apk:debug && bun run apk:debug:install",
-    "show-version": "fastlane show_version",
-    "app-bump-patch": "bunx npm version patch --no-git-tag-version && fastlane bump",
-    "app-bump-minor": "bunx npm version minor --no-git-tag-version && fastlane bump",
-    "app-bump-major": "bunx npm version major --no-git-tag-version && fastlane bump",
-    "ios-beta": "fastlane ios beta",
-    "android-beta": "fastlane android beta",
-    "android-beta-auto": "fastlane android beta_auto",
-    "tag-and-push-beta": "bunx npm version patch --no-git-tag-version && fastlane bump && git add . && git commit -m \"$npm_package_name v${npm_package_version}\" && git tag v${npm_package_version} && git push origin main && git push origin --tags && bun run clean && bun run build && bun run sync"
+    "release:patch": "npm version patch && git push --follow-tags",
+    "release:minor": "npm version minor && git push --follow-tags",
+    "release:major": "npm version major && git push --follow-tags"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.1",

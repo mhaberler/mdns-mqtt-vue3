@@ -26,4 +26,6 @@ dist-ssr
 .codebase-memory
 .playwright-mcp/
 App.ipa
-fastlane/report.xml
+
+# Local signing settings — see .env.example and BUILD.md
+.env
