@@ -12,9 +12,7 @@
 #                               [--env-file FILE]...
 #
 # --env-file reads KEY=value files literally (see .env.example). Their values
-# win over the shell environment. fastlane-style names are accepted as
-# fallbacks: FASTLANE_KEY_PATH/FASTLANE_KEY_ID/FASTLANE_ISSUER_ID for the ASC_*
-# vars and ANDROID_KEYSTORE_ALIAS_PASSWORD for ANDROID_KEY_PASSWORD.
+# win over the shell environment.
 # Without --repo, the current directory's GitHub repo is used.
 set -euo pipefail
 
@@ -40,15 +38,10 @@ while [[ $# -gt 0 ]]; do
     --android-only) ios=0; play=0; shift ;;
     --play-only) ios=0; android=0; shift ;;
     --env-file) load_env "${2/#\~/$HOME}"; shift 2 ;;
-    -h|--help) sed -n '2,19p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,16p' "$0"; exit 0 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
 done
-
-: "${ASC_KEY_PATH:=${FASTLANE_KEY_PATH:-}}"
-: "${ASC_KEY_ID:=${FASTLANE_KEY_ID:-}}"
-: "${ASC_ISSUER_ID:=${FASTLANE_ISSUER_ID:-}}"
-: "${ANDROID_KEY_PASSWORD:=${ANDROID_KEYSTORE_ALIAS_PASSWORD:-}}"
 
 need() {
   for v in "$@"; do

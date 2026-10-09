@@ -21,7 +21,7 @@
     "debug-android-s24": "bunx cap run android  --live-reload  --port $npm_package_config_port --target R3CX90A30EW",
     "debug-android-s10": "bunx cap run android  --live-reload --port $npm_package_config_port  --target RF8MC11LGDW",
     "debug-android-a15": "bunx cap run android  --live-reload --port $npm_package_config_port  --target RF8Y109W1JB",
-    "debug-ios": "export PATH=\"/opt/homebrew/opt/ruby/bin:$PATH\" &&  bunx cap run ios --live-reload  --port $npm_package_config_port  --target 00008140-0002692C1E79801C",
+    "debug-ios": "bunx cap run ios --live-reload  --port $npm_package_config_port  --target 00008140-0002692C1E79801C",
     "ios-log": "idevicesyslog",
     "logcat:all": "adb logcat",
     "logcat:clear": "adb logcat -c",

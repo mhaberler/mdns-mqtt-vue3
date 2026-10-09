@@ -5,9 +5,9 @@ for iOS (TestFlight), APK and AAB for Android (Play internal track) — with the
 GitHub Actions workflow
 [.github/workflows/app-release.yml](.github/workflows/app-release.yml).
 
-No fastlane, no certificate repository: iOS uses Xcode's automatic
-**cloud-managed signing** driven by an App Store Connect API key; Android uses
-plain Gradle with an upload keystore.
+No certificate repository and no signing material in the repo: iOS uses Xcode's
+automatic **cloud-managed signing** driven by an App Store Connect API key;
+Android uses plain Gradle with an upload keystore.
 
 - [Overview](#overview)
 - [Do I need a Mac?](#do-i-need-a-mac)
@@ -238,9 +238,6 @@ ASC_KEY_ID=ABCDE12345
 ASC_ISSUER_ID=69a6de7e-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ```
 
-The old fastlane names `FASTLANE_KEY_PATH`, `FASTLANE_KEY_ID`,
-`FASTLANE_ISSUER_ID` are accepted as fallbacks.
-
 ### How the iOS cloud signing works here
 
 - CI builds the archive **unsigned** (`CODE_SIGNING_ALLOWED=NO`). Signing at
@@ -307,8 +304,7 @@ to the release build type when `ANDROID_KEYSTORE_PATH` is set.
 
 ## One-time setup: Google Play
 
-The `play` job uploads the AAB to the **internal** track as a **draft** release,
-which is what the old fastlane `android beta` lane did.
+The `play` job uploads the AAB to the **internal** track as a **draft** release.
 
 1. Create the app in [Play Console](https://play.google.com/console) with package
    `com.haberlerm.mqttmdns`, and enrol in **Play App Signing** (default for new
@@ -340,8 +336,7 @@ with `gh secret set` — values are piped, never printed.
    `gh auth login` (needs the `repo` scope).
 2. Copy [.env.example](.env.example) to `.env` (gitignored) and fill in the
    values from the three sections above. `.env` is optional — the script also
-   reads variables already exported in your shell, including the fastlane-era
-   `FASTLANE_KEY_PATH/_ID`, `FASTLANE_ISSUER_ID` and `GOOGLE_PLAY_JSON_KEY_PATH`.
+   reads these variables if they are already exported in your shell.
 3. Push:
 
    ```sh
@@ -442,7 +437,7 @@ App Store Connect rejects a re-used build number for the same version, and Play
 rejects a non-increasing `versionCode`; `run_number` is monotonic per workflow,
 so both are satisfied.
 
-**Why `+ 100`:** builds made with the previous fastlane setup reached
+**Why `+ 100`:** releases made before this workflow existed reached
 `versionCode 7`. A brand-new workflow's `run_number` starts at 1, which Play
 would reject as a regression. The offset puts the first CI build at 101 and
 keeps every later one increasing. The literals still in

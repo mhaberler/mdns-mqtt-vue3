@@ -34,8 +34,8 @@ jobs:
           else
             name="$(jq -r .version package.json)"
           fi
-          # Builds from the previous fastlane setup reached versionCode 7, and
-          # Play rejects a non-increasing code — offset past it.
+          # Earlier releases reached versionCode 7, and Play rejects a
+          # non-increasing code — offset past it.
           echo "name=$name" >> "$GITHUB_OUTPUT"
           echo "code=$(( ${{ github.run_number }} + 100 ))" >> "$GITHUB_OUTPUT"
 

@@ -19,7 +19,6 @@ brew install node bun git
 brew install --cask android-studio
 brew install --cask temurin@21         # JDK 21, required by AGP 8.x / Gradle 9.x
 brew install cocoapods                 # iOS pod manager
-brew install ruby                      # for cap live-reload on iOS (uses fastlane chain)
 ```
 
 Xcode (App Store, free, ~10 GB) is required for iOS — install it, launch once to accept the license:
@@ -40,9 +39,6 @@ export JAVA_HOME="$(/usr/libexec/java_home -v 21)"
 # Android SDK (Android Studio installs it here by default)
 export ANDROID_HOME="$HOME/Library/Android/sdk"
 export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH"
-
-# Homebrew Ruby ahead of system Ruby (needed for the debug-ios script)
-export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
 ```
 
 Reload: `source ~/.zshrc`.
@@ -163,7 +159,7 @@ bun run dev                    # http://localhost:8102
 
 - **Gradle error `getDefaultProguardFile('proguard-android.txt') is no longer supported`** — already fixed in this repo (uses `proguard-android-optimize.txt`). If it returns from a plugin, ensure all `@mhaberler/capacitor-zeroconf-nsd` deps are ≥ 5.0.4: `bun update @mhaberler/capacitor-zeroconf-nsd`.
 - **`SDK location not found`** — `ANDROID_HOME` not set, or `android/local.properties` is stale. Delete `android/local.properties` and re-run `bun run sync`.
-- **`pod install` fails on Apple Silicon** — ensure `cocoapods` was installed via brew (not the system Ruby gem). Re-run: `cd ios/App && pod install`.
+- **`pod install` fails on Apple Silicon** — ensure `cocoapods` was installed with `brew install cocoapods`, which is self-contained; a `sudo gem install` against the system interpreter is the usual cause. Re-run: `cd ios/App && pod install`.
 - **Xcode "No account found"** — add Apple ID in **Xcode → Settings → Accounts**.
 - **App can't reach broker on Android** — local network discovery needs `cleartext` traffic (already enabled in `capacitor.config.json`) and on Android 13+ the runtime **Nearby devices** permission. Grant when prompted.
 - **mDNS finds nothing on simulator** — iOS Simulator and Android Emulator both have flaky multicast support; test mDNS on a physical device.
