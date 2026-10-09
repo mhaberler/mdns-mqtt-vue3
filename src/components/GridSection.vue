@@ -73,7 +73,9 @@ export default defineComponent({
         column: 12,
         cellHeight: 60,
         margin: 4,
-        float: false,
+        // gridstack 14 replaced `float: boolean` with `mode`; 'top' is the
+        // old `float: false` (top-gravity packing).
+        mode: 'top',
         handle: '.widget-drag-handle',
         staticGrid: !props.editMode
       }, gridEl.value)
