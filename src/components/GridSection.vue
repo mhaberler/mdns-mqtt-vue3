@@ -77,6 +77,7 @@ export default defineComponent({
         handle: '.widget-drag-handle',
         staticGrid: !props.editMode
       }, gridEl.value)
+      if (!gridstack) return
       gridstack.on('change', (_event: Event, nodes: GridStackNode[]) => {
         mergePositions(nodes)
       })
