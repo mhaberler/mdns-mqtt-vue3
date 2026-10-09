@@ -106,7 +106,9 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: com.haberlerm.mqttmdns
           releaseFiles: out/mqtt-scout-${{ needs.version.outputs.name }}.aab
-          track: internal
+          # Comma-separated. Replaces the deprecated `track`; setting both is
+          # rejected by the action.
+          tracks: internal
           status: draft
 
   ios:

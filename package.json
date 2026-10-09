@@ -40,9 +40,9 @@
     "apk:debug": "bun run build && bun run sync && (cd android && ./gradlew assembleDebug) && echo \"APK: android/app/build/outputs/apk/debug/app-debug.apk\"",
     "apk:debug:install": "adb install -r android/app/build/outputs/apk/debug/app-debug.apk",
     "apk:debug:all": "bun run apk:debug && bun run apk:debug:install",
-    "release:patch": "npm version patch && git push --follow-tags",
-    "release:minor": "npm version minor && git push --follow-tags",
-    "release:major": "npm version major && git push --follow-tags"
+    "release:patch": "npm version patch && git push origin HEAD --follow-tags",
+    "release:minor": "npm version minor && git push origin HEAD --follow-tags",
+    "release:major": "npm version major && git push origin HEAD --follow-tags"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.3",
